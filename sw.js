@@ -1,6 +1,6 @@
 // Service worker: guarda o jogo todo no aparelho para funcionar offline.
 // Ao publicar uma versão nova, mude CACHE para o navegador baixar os arquivos de novo.
-const CACHE = 'pxsudoku-v6';
+const CACHE = 'pxsudoku-v7';
 const FONT_CACHE = 'pxsudoku-fonts';
 // Mesmo endereço do <link> de fontes no index.html.
 const FONT_CSS = 'https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Silkscreen:wght@400;700&display=swap';
@@ -40,9 +40,12 @@ async function cacheFonts() {
   } catch { /* sem rede: o jogo usa a fonte do sistema até a próxima visita online */ }
 }
 
+// cache: 'reload' busca cada arquivo direto do servidor, sem passar pelo cache HTTP do
+// navegador: assim uma versão nova nunca é instalada com arquivos da versão anterior.
 self.addEventListener('install', (e) => {
+  const fresh = ASSETS.map((url) => new Request(url, { cache: 'reload' }));
   e.waitUntil(
-    Promise.all([caches.open(CACHE).then((c) => c.addAll(ASSETS)), cacheFonts()])
+    Promise.all([caches.open(CACHE).then((c) => c.addAll(fresh)), cacheFonts()])
       .then(() => self.skipWaiting())
   );
 });
