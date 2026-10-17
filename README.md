@@ -21,10 +21,18 @@ Terminar um nível libera o próximo.
 
 ## Como jogar
 
-Toque numa casa vazia: abre uma roda em volta dela só com os números que ainda cabem ali (os que não
-aparecem na linha, na coluna nem no bloco). Toque no número, ou, mais rápido, segure a casa e arraste até
-o número sem soltar (soltar fora da roda cancela). Cada número fica sempre no mesmo lugar da roda, como num
-relógio. O centro da roda apaga a casa; o botão no canto de baixo desfaz.
+Os números ficam num teclado fixo fora do tabuleiro, para nunca cobrir as casas: em pé, numa linha logo
+abaixo do tabuleiro; deitado, numa grade 3x3 embaixo à direita, perto do polegar. Embaixo de cada número
+aparece quantos ainda faltam; o número completo fica apagado.
+
+Dá para jogar nas duas ordens:
+
+- **Casa e depois número:** toque na casa e depois no número. Tocar a casa de novo tira a seleção.
+- **Número e depois casas:** toque no número (ele acende e o tabuleiro mostra onde ele já está) e depois em
+  todas as casas dele. Toque no número de novo, numa casa fixa ou no "voltar" do Android para desligar.
+
+Tocar o número que já está na casa apaga a casa; o botão no canto de baixo desfaz. Nos mundos 1 e 2
+(4x4 e 6x6), o teclado apaga os números que não cabem na casa escolhida; do 9x9 em diante, não.
 
 ## Rodar no computador
 
@@ -68,6 +76,5 @@ versão nova. Ao criar um arquivo novo, inclua-o na lista `ASSETS` do mesmo arqu
 - `js/levels.js`: curva de dificuldade por mundo
 - `js/game.js`: estado da partida (valores, desfazer, conferência da solução)
 - `js/main.js`: telas e controles
-- `js/wheel.js`: roda de números que abre sobre a casa tocada
 - `js/sprites.js`, `js/scenes.js`, `js/audio.js`: pixel art, cenários e sons chiptune (tudo gerado em código)
 - `tools/make-icons.mjs`: gera os ícones PNG (`npm run icons`)

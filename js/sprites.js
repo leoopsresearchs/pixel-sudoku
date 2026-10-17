@@ -31,18 +31,6 @@ export const SPRITES = {
     '...kwwwk..',
     '...kkkk...',
   ],
-  eraser: [
-    '.....kkkk.',
-    '....krrrrk',
-    '...krrrrrk',
-    '..krrrrrk.',
-    '.kwkrrrk..',
-    'kwwwkrk...',
-    'kwwwwk....',
-    '.kwwk.....',
-    '..kk......',
-    '..kkkkkkkk',
-  ],
   pause: [
     'kkkk..kkkk',
     'kwwk..kwwk',

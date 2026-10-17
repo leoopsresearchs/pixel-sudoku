@@ -5,15 +5,14 @@ import { store, save, resetProgress } from './storage.js';
 import { Backdrop } from './scenes.js';
 import { icon, iconHTML, drawTitle, drawSprite, SLIME, PAL } from './sprites.js';
 import { sfx, unlockAudio, setSound } from './audio.js';
-import { Wheel } from './wheel.js';
 
 const VERSION = '1.1.0';
 const $ = (sel) => document.querySelector(sel);
 
 const TIPS = [
-  'Cada linha, coluna e bloco 2x2 tem os números de 1 a 4, sem repetir. Toque numa casa vazia: a roda mostra só os números que ainda cabem nela.',
-  'Agora 6x6! Os blocos são de 2x3 e os números vão de 1 a 6. Truque: segure a casa e arraste até o número, sem soltar.',
-  'O clássico 9x9. Procure a única casa possível para cada número em cada bloco.',
+  'Cada linha, coluna e bloco 2x2 tem os números de 1 a 4, sem repetir. Toque numa casa e depois no número: os que não cabem na casa ficam apagados.',
+  'Agora 6x6! Os blocos são de 2x3 e os números vão de 1 a 6. Truque: toque primeiro no número e depois em todas as casas dele.',
+  'O clássico 9x9. Daqui em diante o teclado não apaga mais os números que não cabem: é com você! Procure a única casa possível para cada número em cada bloco.',
   'Se um número só cabe numa linha de um bloco, ele não pode aparecer no resto dessa linha.',
   'Pares e trios: duas casas de uma linha com os mesmos dois candidatos eliminam esses números do resto da linha.',
   'Técnicas avançadas, como X-Wing. Respire fundo: dá para resolver sem chutar!',
@@ -68,7 +67,10 @@ let paused = false;
 let tickTimer = null;
 let lastTick = 0;
 let cellEls = [];
+let keyEls = [];
+let armed = 0; // número ativo no teclado (número primeiro, depois as casas); 0 = nenhum
 let modalOpen = false;
+const keypad = $('#keypad');
 
 function show(name) {
   screen = name;
@@ -208,6 +210,7 @@ async function startLevel(level, { resume = false } = {}) {
   closeModal();
   game = new Game(data);
   paused = false;
+  armed = 0;
   persist();
   buildBoard();
   const w = worldOf(level);
@@ -260,6 +263,19 @@ function buildBoard() {
     }
     board.append(box);
   }
+  // Teclado: 1 linha em pé; deitado, 3 colunas (2 no 4x4).
+  keypad.innerHTML = '';
+  keypad.style.setProperty('--n', n);
+  keypad.style.setProperty('--cols', n === 4 ? 2 : 3);
+  keyEls = [];
+  for (let d = 1; d <= n; d++) {
+    const k = document.createElement('button');
+    k.className = 'btn key';
+    k.dataset.d = d;
+    k.innerHTML = `<span>${d}</span><span class="key-n"></span>`;
+    keyEls[d] = k;
+    keypad.append(k);
+  }
   layoutBoard();
 }
 
@@ -274,21 +290,24 @@ function layoutBoard() {
   const board = $('#board');
   board.style.width = board.style.height = `${size}px`;
   board.style.setProperty('--cell', `${size / game.n}px`);
+  keypad.style.setProperty('--board', `${size}px`);
 }
 new ResizeObserver(layoutBoard).observe(boardWrap);
-addEventListener('resize', () => { wheel.close(); layoutBoard(); if (screen === 'home') layoutHome(); });
+addEventListener('resize', () => { layoutBoard(); if (screen === 'home') layoutHome(); });
 
 function renderGame() {
   if (!game) return;
-  const { g, values, selected } = game;
+  const { g, n, values, selected } = game;
   const { showErrors, highlightSame } = store.settings;
-  // Enquanto o dedo passa por um número da roda, o tabuleiro mostra onde ele já está.
-  const selVal = preview || (selected >= 0 ? values[selected] : 0);
+  // Com um número ativo, o tabuleiro mostra onde ele já está (e esconde a cruz da casa).
+  const selVal = armed || (selected >= 0 ? values[selected] : 0);
+  const count = new Array(n + 1).fill(0);
   for (let i = 0; i < g.cells; i++) {
     const el = cellEls[i];
     const v = values[i];
+    count[v]++;
     const given = game.isGiven(i);
-    const peer = selected >= 0 && i !== selected && (g.rowOf[i] === g.rowOf[selected] || g.colOf[i] === g.colOf[selected] || g.boxOf[i] === g.boxOf[selected]);
+    const peer = !armed && selected >= 0 && i !== selected && (g.rowOf[i] === g.rowOf[selected] || g.colOf[i] === g.colOf[selected] || g.boxOf[i] === g.boxOf[selected]);
     el.classList.toggle('given', given);
     el.classList.toggle('user', !given && v > 0);
     el.classList.toggle('selected', i === selected);
@@ -297,6 +316,16 @@ function renderGame() {
     el.classList.toggle('wrong', showErrors && game.isWrong(i));
     const html = v ? `<span class="v">${v}</span>` : '';
     if (el._html !== html) { el.innerHTML = html; el._html = html; }
+  }
+  // Nos mundos de aprendizado, os números que não cabem na casa escolhida ficam apagados.
+  const fits = assist() && !armed && selected >= 0 && !game.isGiven(selected) ? new Set(game.candidates(selected)) : null;
+  for (let d = 1; d <= n; d++) {
+    const k = keyEls[d];
+    const left = Math.max(0, n - count[d]);
+    k.classList.toggle('on', d === armed);
+    k.classList.toggle('done', !left);
+    k.classList.toggle('no', !!fits && !fits.has(d));
+    k.lastChild.textContent = left || '';
   }
   let open = 0, filled = 0;
   for (let i = 0; i < g.cells; i++) if (!game.isGiven(i)) { open++; if (values[i]) filled++; }
@@ -344,43 +373,54 @@ function select(i) {
   renderGame();
 }
 
-// ---------- Roda de números ----------
-let preview = 0;
-const wheel = new Wheel({
-  onPick: (d) => { wheel.close(); press(d); },
-  onErase: () => { wheel.close(); useTool('erase'); },
-  onHover: (d, pressing) => {
-    preview = d;
-    if (d && pressing) sfx.hover();
-    renderGame();
-  },
-});
+// ---------- Casas e teclado ----------
+// Ordem livre: casa e depois número, ou número e depois as casas.
+// - Sem número ativo: tocar uma casa a escolhe; o número tocado vai para ela.
+//   Sem casa editável escolhida, o número tocado fica ativo.
+// - Com número ativo: cada casa tocada recebe esse número; tocar o número de novo
+//   (ou uma casa fixa) desliga.
+// Tocar o número que já está na casa apaga a casa.
 
-// Casa vazia ou preenchida por você abre a roda; casa fixa só destaca os números iguais.
-function tapCell(i, e) {
+// Mundos 1 e 2 (aprendizado): o teclado apaga os números que não cabem na casa.
+const assist = () => !!game && worldOf(game.level).index < 2;
+
+function tapCell(i) {
   if (!game || paused || game.done) return;
-  if (game.isGiven(i)) { wheel.close(); select(i); return; }
-  game.selected = i;
-  const v = game.values[i];
-  const digits = new Set(game.candidates(i));
-  if (!digits.size) {
-    // Nada cabe: algum número da linha, coluna ou bloco está errado.
-    wheel.close();
+  if (armed) {
+    if (game.isGiven(i)) { armed = 0; select(i); return; }
+    game.selected = i;
+    handle(game.input(armed));
+    // No modo número nenhuma casa fica escolhida: assim o próximo número tocado só troca
+    // o número ativo, sem sobrescrever a última casa.
+    game.selected = -1;
+    if (game.values.filter((v) => v === armed).length >= game.n) armed = 0; // número completo
     renderGame();
+    return;
+  }
+  if (game.selected === i) { game.selected = -1; sfx.tap(); renderGame(); return; }
+  select(i);
+  if (assist() && !game.isGiven(i) && !game.values[i] && !game.candidates(i).length) {
+    // Nada cabe: algum número da linha, coluna ou bloco está errado.
     sfx.error();
     restartAnim(cellEls[i], 'shake');
     toast('Nenhum número cabe aqui. Confira a linha, a coluna e o bloco!');
-    return;
   }
-  wheel.open(cellEls[i].getBoundingClientRect(), { n: game.n, px: artPx(), digits, current: v, canErase: v > 0 });
-  wheel.grab(e, 'open');
-  sfx.wheel();
+}
+
+function tapKey(d) {
+  if (!game || paused || game.done) return;
+  const i = game.selected;
+  if (!armed && i >= 0 && !game.isGiven(i)) { handle(game.input(d)); return; }
+  armed = armed === d ? 0 : d;
+  if (armed) sfx.arm(); else sfx.tap();
   renderGame();
 }
 
-function press(d) {
-  if (!game || paused || game.done) return;
-  handle(game.input(d));
+function disarm() {
+  if (!armed) return false;
+  armed = 0;
+  renderGame();
+  return true;
 }
 
 function handle(r) {
@@ -446,13 +486,18 @@ board.addEventListener('pointerdown', (e) => {
   if (!c) return;
   e.preventDefault();
   unlockAudio();
-  tapCell(+c.dataset.i, e);
+  tapCell(+c.dataset.i);
 });
 board.addEventListener('contextmenu', (e) => e.preventDefault());
-// Tocar fora da roda (e fora do tabuleiro) fecha a roda; o toque segue para o botão tocado.
-document.addEventListener('pointerdown', (e) => {
-  if (wheel.isOpen && !wheel.el.contains(e.target) && !board.contains(e.target)) wheel.close();
-}, true);
+
+keypad.addEventListener('pointerdown', (e) => {
+  const k = e.target.closest('.key');
+  if (!k) return;
+  e.preventDefault();
+  unlockAudio();
+  tapKey(+k.dataset.d);
+});
+keypad.addEventListener('contextmenu', (e) => e.preventDefault());
 
 $('#btn-undo').append(icon('undo'));
 $('#btn-undo').addEventListener('pointerdown', (e) => {
@@ -471,7 +516,6 @@ $('#btn-pause').addEventListener('click', () => { sfx.click(); openPause(); });
 
 function openPause() {
   if (!game || game.done) return;
-  wheel.close();
   stopTimer();
   paused = true;
   $('#board').classList.add('paused');
@@ -507,7 +551,6 @@ function confirmRestart() {
 }
 
 function goHome() {
-  wheel.close();
   stopTimer();
   persist();
   closeModal();
@@ -635,7 +678,6 @@ function confirmReset(back) {
 // ---------- Modal e aviso ----------
 let modalBack = null;
 function modal({ title, kicker, text, html, buttons = [], footer = '', onBack }) {
-  wheel.close();
   const panel = $('#panel');
   panel.innerHTML = `
     ${kicker ? `<div class="kicker">${kicker}</div>` : ''}
@@ -687,12 +729,14 @@ addEventListener('keydown', (e) => {
   if (screen !== 'game' || !game) return;
   const { n } = game;
   const k = e.key.toLowerCase();
-  if (k === 'escape' && wheel.isOpen) { wheel.close(); e.preventDefault(); return; }
-  if (/^[1-9]$/.test(k) && +k <= n) press(+k);
+  if (k === 'escape' && disarm()) { e.preventDefault(); return; }
+  if (/^[1-9]$/.test(k) && +k <= n) tapKey(+k);
   else if (k === 'backspace' || k === 'delete' || k === '0') useTool('erase');
   else if (k === 'z') useTool('undo');
   else if (k === 'escape' || k === 'p') openPause();
   else if (k.startsWith('arrow')) {
+    // Pelo teclado do computador é sempre casa e depois número.
+    armed = 0;
     const i = Math.max(0, game.selected);
     let r = Math.floor(i / n), c = i % n;
     if (k === 'arrowup') r = (r + n - 1) % n;
@@ -701,7 +745,6 @@ addEventListener('keydown', (e) => {
     if (k === 'arrowright') c = (c + 1) % n;
     select(r * n + c);
   } else return;
-  wheel.close();
   e.preventDefault();
 });
 
@@ -716,13 +759,13 @@ document.addEventListener('visibilitychange', () => {
 });
 addEventListener('pagehide', () => { stopTimer(); persist(); });
 
-// Botão "voltar" do Android: fecha modal / pausa / volta ao início.
+// Botão "voltar" do Android: fecha modal / desliga o número ativo / pausa / volta ao início.
 history.replaceState({ base: true }, '');
 addEventListener('popstate', () => {
   if (screen === 'home' && !modalOpen) return;
   history.pushState({ trap: true }, '');
   if (modalOpen) { if (modalBack) modalBack(); return; }
-  if (wheel.isOpen) { wheel.close(); return; }
+  if (screen === 'game' && disarm()) return;
   if (screen === 'game') openPause();
   else goHome();
 });

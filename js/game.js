@@ -16,7 +16,7 @@ export class Game {
     this.elapsed = data.elapsed || 0;
     this.history = [];
     this.done = false;
-    this.selected = data.selected ?? this.values.findIndex((v) => !v);
+    this.selected = data.selected ?? -1; // começa sem casa: o primeiro toque pode ser num número
   }
 
   isGiven(i) { return this.puzzle[i] !== 0; }
@@ -62,7 +62,7 @@ export class Game {
   }
 
   // Números que a casa ainda aceita: os que não aparecem na linha, coluna ou bloco dela.
-  // O valor atual da casa sempre entra, para continuar visível na roda.
+  // O valor atual da casa sempre entra, para a tecla dele seguir acesa (tocar nela apaga a casa).
   candidates(i) {
     const used = new Set(this.g.peers[i].map((p) => this.values[p]));
     const out = [];

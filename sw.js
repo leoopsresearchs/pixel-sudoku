@@ -1,6 +1,6 @@
 // Service worker: guarda o jogo todo no aparelho para funcionar offline.
 // Ao publicar uma versão nova, mude CACHE para o navegador baixar os arquivos de novo.
-const CACHE = 'pxsudoku-v4';
+const CACHE = 'pxsudoku-v5';
 const FONT_CACHE = 'pxsudoku-fonts';
 // Mesmo endereço do <link> de fontes no index.html.
 const FONT_CSS = 'https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Silkscreen:wght@400;700&display=swap';
@@ -19,7 +19,6 @@ const ASSETS = [
   'js/sprites.js',
   'js/audio.js',
   'js/worker.js',
-  'js/wheel.js',
   'icons/favicon-32.png',
   'icons/apple-touch-icon.png',
   'icons/icon-192.png',

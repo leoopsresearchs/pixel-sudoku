@@ -147,12 +147,14 @@ button { font: inherit; color: inherit; touch-action: manipulation; }
 /* ---------- Partida ---------- */
 /* O tabuleiro é o centro da tela; o HUD fica nos cantos, sempre no mesmo lugar:
    sistema (pausa) em cima à esquerda, status (tempo) em cima à direita,
-   ação (desfazer) embaixo à direita, perto do polegar. */
+   ação (desfazer) embaixo à direita, perto do polegar. O teclado fica logo abaixo
+   do tabuleiro, numa linha só. */
 .game {
   display: grid;
   grid-template:
     "pause info  timer" auto
     "board board board" minmax(0, 1fr)
+    "pad   pad   pad"   auto
     ".     .     undo"  auto
     / auto minmax(0, 1fr) auto;
   gap: calc(var(--px) * 2) calc(var(--px) * 3);
@@ -181,7 +183,6 @@ button { font: inherit; color: inherit; touch-action: manipulation; }
   gap: var(--px);
   padding: var(--px);
   background: var(--ink);
-  touch-action: none; /* o dedo arrasta da casa até a roda sem o navegador roubar o gesto */
   box-shadow:
     0 calc(var(--px) * -1) 0 0 var(--ink), 0 var(--px) 0 0 var(--ink),
     calc(var(--px) * -1) 0 0 0 var(--ink), var(--px) 0 0 0 var(--ink),
@@ -219,8 +220,36 @@ button { font: inherit; color: inherit; touch-action: manipulation; }
 .cell.flash { animation: flash .5s steps(2) both; }
 @keyframes flash { 0%, 60% { background: var(--lime); color: var(--ink); } }
 
+/* ---------- Teclado de números ---------- */
+/* Em pé: uma linha com a largura do tabuleiro (--board vem do JS). Cada número fica
+   sempre no mesmo lugar; embaixo dele, quantos ainda faltam no tabuleiro. */
+.keypad {
+  grid-area: pad;
+  justify-self: center;
+  width: min(100%, var(--board, 100%));
+  display: grid;
+  grid-template-columns: repeat(var(--n, 9), minmax(0, calc(var(--px) * 24)));
+  justify-content: center;
+  gap: 0 var(--px);
+}
+.key {
+  min-width: 0;
+  height: calc(var(--px) * 17);
+  padding: 0;
+  flex-direction: column; gap: calc(var(--px) * 1.5);
+  font-family: var(--font-num); font-size: calc(var(--px) * 6); line-height: 1;
+}
+.key-n { font-family: var(--font); font-size: calc(var(--px) * 4); color: var(--slate); min-height: 1em; }
+/* Número ativo (número primeiro, depois as casas). */
+.key.on { --bg: var(--yellow); --hi: #fff4d6; --lo: var(--orange); }
+.key.on .key-n { color: var(--ink); }
+/* Número completo, ou (nos mundos 1 e 2) que não cabe na casa escolhida. */
+.key.done, .key.no { --bg: var(--peer); --fg: var(--silver); --hi: var(--white); --lo: var(--silver); }
+.key.done .key-n, .key.no .key-n { color: var(--silver); }
+
 /* Paisagem (tablet deitado): o tabuleiro ocupa a altura toda e o HUD vai para as laterais,
-   mantendo os mesmos cantos do modo retrato. */
+   mantendo os mesmos cantos do modo retrato. O teclado vira uma grade 3x3 embaixo à
+   direita, acima do desfazer, onde o polegar alcança todos os números. */
 @media (orientation: landscape) and (min-aspect-ratio: 5/4) {
   .game {
     --board-col: min(calc(100vh - env(safe-area-inset-top) - env(safe-area-inset-bottom) - var(--px) * 5), 70vw);
@@ -228,6 +257,7 @@ button { font: inherit; color: inherit; touch-action: manipulation; }
     grid-template:
       "pause board timer" auto
       "info  board .    " minmax(0, 1fr)
+      ".     board pad  " auto
       ".     board undo " auto
       / minmax(0, 1fr) var(--board-col) minmax(0, 1fr);
     padding: calc(var(--px) * 3) calc(var(--px) * 4) calc(var(--px) * 2);
@@ -235,27 +265,14 @@ button { font: inherit; color: inherit; touch-action: manipulation; }
   .hud-info { align-self: start; align-items: flex-start; text-align: left; }
   .hud-info span { white-space: normal; }
   .hud-info strong { font-size: calc(var(--px) * 4); white-space: nowrap; }
+  .keypad {
+    justify-self: end;
+    width: 100%;
+    grid-template-columns: repeat(var(--cols, 3), minmax(0, calc(var(--px) * 20)));
+    justify-content: end;
+  }
+  .key { height: auto; aspect-ratio: 1; }
 }
-
-/* ---------- Roda de números ---------- */
-.wheel { position: fixed; z-index: 15; border-radius: 50%; touch-action: none; }
-.wheel-disc { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; animation: wheel-in .12s steps(3) backwards; }
-@keyframes wheel-in { from { transform: scale(.4); opacity: 0; } }
-.wheel-item, .wheel-erase {
-  position: absolute; width: var(--s); height: var(--s);
-  margin: 0; padding: 0;
-  pointer-events: none;
-}
-.wheel-item {
-  font-family: var(--font-num); font-size: calc(var(--s) * .44); line-height: 1;
-  animation: item-in .15s steps(3) backwards; animation-delay: calc(var(--k) * 12ms);
-}
-.wheel-item > span { transform: translateY(6%); }
-@keyframes item-in { from { transform: translate(var(--fx), var(--fy)) scale(.3); opacity: 0; } }
-.wheel-item.cur { --bg: var(--lime); --hi: #e3ffc9; --lo: var(--green); }
-.wheel-item.hot, .wheel-erase.hot { --bg: var(--yellow); --fg: var(--ink); --hi: #fff4d6; --lo: var(--orange); transform: scale(1.15); z-index: 1; }
-.wheel-erase .sprite { --s: 1; }
-.wheel-cell { position: absolute; pointer-events: none; background: var(--yellow); box-shadow: inset 0 0 0 calc(var(--px) * .75) var(--orange), 0 0 0 var(--px) var(--ink); }
 
 /* ---------- Modais ---------- */
 .overlay {

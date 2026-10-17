@@ -31,8 +31,7 @@ const seq = (notes, step, opts) => notes.forEach((f, i) => tone(f, step * 1.4, {
 
 export const sfx = {
   tap: () => tone(740, 0.03, { vol: 0.025 }),
-  wheel: () => tone(440, 0.05, { vol: 0.03, slide: 440 }),
-  hover: () => tone(988, 0.02, { vol: 0.02 }),
+  arm: () => tone(440, 0.05, { vol: 0.03, slide: 440 }),
   click: () => tone(520, 0.04, { vol: 0.04 }),
   place: () => { tone(587, 0.05, { vol: 0.05 }); tone(880, 0.07, { vol: 0.05, delay: 0.045 }); },
   erase: () => tone(392, 0.08, { vol: 0.04, slide: -160 }),
