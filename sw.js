@@ -1,7 +1,9 @@
 // Service worker: guarda o jogo todo no aparelho para funcionar offline.
 // Ao publicar uma versão nova, mude CACHE para o navegador baixar os arquivos de novo.
-const CACHE = 'pxsudoku-v1';
+const CACHE = 'pxsudoku-v2';
 const FONT_CACHE = 'pxsudoku-fonts';
+// Mesmo endereço do <link> de fontes no index.html.
+const FONT_CSS = 'https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Silkscreen:wght@400;700&display=swap';
 const ASSETS = [
   './',
   'index.html',
@@ -24,8 +26,25 @@ const ASSETS = [
   'icons/icon-maskable-512.png',
 ];
 
+// Baixa as fontes já na instalação: na primeira visita a página ainda não passa
+// pelo service worker, então sem isso elas só ficariam guardadas na segunda.
+async function cacheFonts() {
+  try {
+    const cache = await caches.open(FONT_CACHE);
+    const res = await fetch(FONT_CSS);
+    if (!res.ok) return;
+    const css = await res.clone().text();
+    await cache.put(FONT_CSS, res);
+    const urls = [...css.matchAll(/url\((https:[^)]+)\)/g)].map((m) => m[1]);
+    await Promise.all(urls.map((u) => fetch(u).then((r) => r.ok && cache.put(u, r))));
+  } catch { /* sem rede: o jogo usa a fonte do sistema até a próxima visita online */ }
+}
+
 self.addEventListener('install', (e) => {
-  e.waitUntil(caches.open(CACHE).then((c) => c.addAll(ASSETS)).then(() => self.skipWaiting()));
+  e.waitUntil(
+    Promise.all([caches.open(CACHE).then((c) => c.addAll(ASSETS)), cacheFonts()])
+      .then(() => self.skipWaiting())
+  );
 });
 
 self.addEventListener('activate', (e) => {
@@ -45,7 +64,7 @@ self.addEventListener('fetch', (e) => {
   if (url.hostname === 'fonts.googleapis.com' || url.hostname === 'fonts.gstatic.com') {
     e.respondWith(
       caches.open(FONT_CACHE).then(async (cache) => {
-        const hit = await cache.match(request);
+        const hit = await cache.match(request, { ignoreVary: true });
         if (hit) return hit;
         const res = await fetch(request);
         if (res.ok || res.type === 'opaque') await cache.put(request, res.clone());

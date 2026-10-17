@@ -53,7 +53,7 @@ O progresso fica salvo no próprio aparelho.
 
 ## Atualizar uma versão publicada
 
-Ao mudar qualquer arquivo, troque `CACHE = 'pxsudoku-v1'` em `sw.js` (ex.: `v2`) para os tablets baixarem a
+Ao mudar qualquer arquivo, troque `CACHE = 'pxsudoku-v2'` em `sw.js` (ex.: `v3`) para os tablets baixarem a
 versão nova. Ao criar um arquivo novo, inclua-o na lista `ASSETS` do mesmo arquivo.
 
 ## Estrutura
