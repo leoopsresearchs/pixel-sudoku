@@ -1,0 +1,10 @@
+{
+  "name": "pixel-sudoku",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "serve": "node tools/serve.mjs 5173",
+    "test": "node tools/test-sudoku.mjs",
+    "icons": "node tools/make-icons.mjs"
+  }
+}

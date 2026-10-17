@@ -1,0 +1,91 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+  <title>Pixel Sudoku</title>
+  <meta name="description" content="Sudoku pixel art com dificuldade progressiva, para jogar offline.">
+  <meta name="theme-color" content="#1a1c2c">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Sudoku">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" type="image/png" href="icons/favicon-32.png">
+  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Silkscreen:wght@400;700&display=swap">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <canvas id="bg" aria-hidden="true"></canvas>
+
+  <main id="app">
+    <!-- Início -->
+    <section id="screen-home" class="screen home">
+      <div class="home-top">
+        <span class="home-kicker">PIXEL</span>
+        <canvas id="title" class="pixelated" aria-label="Sudoku"></canvas>
+      </div>
+      <canvas id="mascot" class="pixelated mascot" width="16" height="13" aria-hidden="true"></canvas>
+      <nav class="home-menu">
+        <button class="btn btn-primary btn-big" id="btn-play">
+          <span class="btn-label">JOGAR</span>
+          <small id="play-sub">NÍVEL 1</small>
+        </button>
+        <button class="btn btn-big" id="btn-levels"><span class="btn-label">NÍVEIS</span></button>
+        <button class="btn btn-big" id="btn-settings"><span class="btn-label">AJUSTES</span></button>
+      </nav>
+      <div class="home-stats px-chip" id="home-stats"></div>
+    </section>
+
+    <!-- Mapa de níveis -->
+    <section id="screen-map" class="screen" hidden>
+      <header class="topbar">
+        <button class="btn btn-icon" id="map-back" aria-label="Voltar"></button>
+        <h2 class="topbar-title">NÍVEIS</h2>
+        <div class="px-chip" id="map-stars"></div>
+      </header>
+      <div class="map-scroll" id="worlds"></div>
+    </section>
+
+    <!-- Partida -->
+    <section id="screen-game" class="screen" hidden>
+      <header class="topbar">
+        <button class="btn btn-icon" id="btn-pause" aria-label="Pausar"></button>
+        <div class="level-info">
+          <span id="game-world"></span>
+          <strong id="game-level"></strong>
+        </div>
+        <div class="game-stats">
+          <span class="px-chip" id="game-timer"></span>
+          <span class="px-chip chip-red" id="game-mistakes"></span>
+        </div>
+      </header>
+      <div class="game-body" id="game-body">
+        <div class="board-wrap" id="board-wrap">
+          <div class="board" id="board"></div>
+        </div>
+        <div class="controls">
+          <div class="tools" id="tools">
+            <button class="btn tool" data-tool="undo"><span class="tool-ico"></span><span class="tool-label">DESFAZER</span></button>
+            <button class="btn tool" data-tool="erase"><span class="tool-ico"></span><span class="tool-label">APAGAR</span></button>
+            <button class="btn tool" data-tool="notes"><span class="tool-ico"></span><span class="tool-label">NOTAS</span><span class="badge" id="notes-badge">OFF</span></button>
+            <button class="btn tool" data-tool="hint"><span class="tool-ico"></span><span class="tool-label">DICA</span><span class="badge" id="hint-badge" hidden>0</span></button>
+          </div>
+          <div class="numpad" id="numpad"></div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <div class="overlay" id="overlay" hidden>
+    <div class="panel px-panel" id="panel" role="dialog" aria-modal="true"></div>
+  </div>
+  <div class="toast" id="toast" hidden></div>
+  <canvas id="fx" class="pixelated" aria-hidden="true"></canvas>
+
+  <script type="module" src="js/main.js"></script>
+</body>
+</html>
