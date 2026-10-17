@@ -21,9 +21,10 @@ Terminar um nível libera o próximo.
 
 ## Como jogar
 
-Toque numa casa vazia: abre uma roda com os números em volta dela. Toque no número, ou, mais rápido,
-segure a casa e arraste até o número sem soltar (soltar fora da roda cancela). Cada número fica sempre
-no mesmo lugar da roda, como num relógio. O centro da roda apaga a casa; o botão no canto de baixo desfaz.
+Toque numa casa vazia: abre uma roda em volta dela só com os números que ainda cabem ali (os que não
+aparecem na linha, na coluna nem no bloco). Toque no número, ou, mais rápido, segure a casa e arraste até
+o número sem soltar (soltar fora da roda cancela). Cada número fica sempre no mesmo lugar da roda, como num
+relógio. O centro da roda apaga a casa; o botão no canto de baixo desfaz.
 
 ## Rodar no computador
 

@@ -61,8 +61,14 @@ export class Game {
       .filter((u) => u.every((c) => this.values[c] === this.solution[c]));
   }
 
-  placed(d) { return this.values.reduce((a, v) => a + (v === d), 0); }
-  digitComplete(d) { return this.values.reduce((a, v, i) => a + (v === d && v === this.solution[i]), 0) === this.n; }
+  // Números que a casa ainda aceita: os que não aparecem na linha, coluna ou bloco dela.
+  // O valor atual da casa sempre entra, para continuar visível na roda.
+  candidates(i) {
+    const used = new Set(this.g.peers[i].map((p) => this.values[p]));
+    const out = [];
+    for (let d = 1; d <= this.n; d++) if (!used.has(d) || d === this.values[i]) out.push(d);
+    return out;
+  }
 
   checkWin() {
     this.done = this.values.every((v, i) => v === this.solution[i]);

@@ -11,7 +11,7 @@ const VERSION = '1.1.0';
 const $ = (sel) => document.querySelector(sel);
 
 const TIPS = [
-  'Cada linha, coluna e bloco 2x2 tem os números de 1 a 4, sem repetir. Toque numa casa vazia e escolha o número na roda.',
+  'Cada linha, coluna e bloco 2x2 tem os números de 1 a 4, sem repetir. Toque numa casa vazia: a roda mostra só os números que ainda cabem nela.',
   'Agora 6x6! Os blocos são de 2x3 e os números vão de 1 a 6. Truque: segure a casa e arraste até o número, sem soltar.',
   'O clássico 9x9. Procure a única casa possível para cada número em cada bloco.',
   'Se um número só cabe numa linha de um bloco, ele não pode aparecer no resto dessa linha.',
@@ -362,9 +362,17 @@ function tapCell(i, e) {
   if (game.isGiven(i)) { wheel.close(); select(i); return; }
   game.selected = i;
   const v = game.values[i];
-  const disabled = new Set();
-  for (let d = 1; d <= game.n; d++) if (d !== v && game.digitComplete(d)) disabled.add(d);
-  wheel.open(cellEls[i].getBoundingClientRect(), { n: game.n, px: artPx(), disabled, current: v, canErase: v > 0 });
+  const digits = new Set(game.candidates(i));
+  if (!digits.size) {
+    // Nada cabe: algum número da linha, coluna ou bloco está errado.
+    wheel.close();
+    renderGame();
+    sfx.error();
+    restartAnim(cellEls[i], 'shake');
+    toast('Nenhum número cabe aqui. Confira a linha, a coluna e o bloco!');
+    return;
+  }
+  wheel.open(cellEls[i].getBoundingClientRect(), { n: game.n, px: artPx(), digits, current: v, canErase: v > 0 });
   wheel.grab(e, 'open');
   sfx.wheel();
   renderGame();

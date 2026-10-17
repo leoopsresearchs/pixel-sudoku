@@ -1,7 +1,8 @@
 // Roda de números: abre em volta da casa tocada, no lugar do teclado numérico.
 // Dá para tocar na casa e depois no número, ou segurar a casa e arrastar até o
-// número (soltar escolhe; soltar fora da roda cancela). Cada número fica sempre
-// no mesmo ângulo, como num relógio, para a mão decorar o caminho.
+// número (soltar escolhe; soltar fora da roda cancela). A roda só mostra os números
+// que cabem na casa, mas cada um fica sempre no mesmo ângulo, como num relógio,
+// para a mão decorar o caminho.
 import { icon } from './sprites.js';
 
 const TAU = Math.PI * 2;
@@ -41,8 +42,8 @@ export class Wheel {
     });
   }
 
-  // rect: casa na tela; px: tamanho do "pixel de arte"; disabled: números que não podem ser escolhidos.
-  open(rect, { n, px, disabled = new Set(), current = 0, canErase = false }) {
+  // rect: casa na tela; px: tamanho do "pixel de arte"; digits: números que aparecem na roda.
+  open(rect, { n, px, digits, current = 0, canErase = false }) {
     this.close(true);
     // gap conta a borda pixelada (1 px de arte de cada lado e 2 embaixo).
     const s = px * 15;
@@ -58,7 +59,7 @@ export class Wheel {
     // Perto da borda a roda entra na tela e sai de cima da casa: aí o furo do meio
     // mostraria a casa vizinha, então o centro vira uma miniatura da casa escolhida.
     const shifted = Math.hypot(cx - rx, cy - ry) > 1;
-    Object.assign(this, { n, px, cx, cy, inner, outer, disabled, canErase, isOpen: true });
+    Object.assign(this, { n, px, cx, cy, inner, outer, digits, canErase, isOpen: true });
     this.slop = Math.max(px * 4, R * 0.45);
 
     const el = this.el;
@@ -68,17 +69,17 @@ export class Wheel {
     el.style.setProperty('--s', `${s}px`);
     drawDisc(this.disc, art, shifted ? 0 : inner / px);
 
-    for (let d = 1; d <= n; d++) {
+    for (const d of digits) {
       const a = (d - 1) / n * TAU - Math.PI / 2;
       const x = Math.cos(a) * R, y = Math.sin(a) * R;
       const b = document.createElement('div');
-      b.className = `btn wheel-item${disabled.has(d) ? ' off' : ''}${d === current ? ' cur' : ''}`;
+      b.className = `btn wheel-item${d === current ? ' cur' : ''}`;
       b.innerHTML = `<span>${d}</span>`;
       b.style.left = `${outer + x - s / 2}px`;
       b.style.top = `${outer + y - s / 2}px`;
       b.style.setProperty('--fx', `${-x}px`);
       b.style.setProperty('--fy', `${-y}px`);
-      b.style.setProperty('--k', d - 1);
+      b.style.setProperty('--k', this.items.length);
       b.dataset.d = d;
       el.append(b);
       this.items.push(b);
@@ -115,15 +116,22 @@ export class Wheel {
     if (!silent) this.cb.onClose?.();
   }
 
-  // O que está sob o ponto: 'center', um número (por setor, então o alvo é a fatia
-  // inteira e não só o botão) ou null fora da roda.
+  // O que está sob o ponto: 'center', um número ou null. O alvo de cada número é a
+  // fatia da roda (não só o botão) e cresce sobre as fatias vazias vizinhas.
   zoneAt(x, y) {
     const dx = x - this.cx, dy = y - this.cy;
-    const d = Math.hypot(dx, dy);
-    if (d < this.inner) return 'center';
-    if (d > this.outer) return null;
+    const r = Math.hypot(dx, dy);
+    if (r < this.inner) return 'center';
+    if (r > this.outer) return null;
+    const step = TAU / this.n;
     const a = (Math.atan2(dy, dx) + Math.PI / 2 + TAU) % TAU;
-    return (Math.round(a / (TAU / this.n)) % this.n) + 1;
+    let best = null, bestGap = step;
+    for (const d of this.digits) {
+      const gap = Math.abs(a - (d - 1) * step);
+      const dist = Math.min(gap, TAU - gap);
+      if (dist <= bestGap) { best = d; bestGap = dist; }
+    }
+    return best;
   }
 
   // kind 'open': o toque que abriu a roda; só escolhe depois de arrastar para longe da casa.
@@ -150,10 +158,8 @@ export class Wheel {
     this.press = null;
     if (!this.isOpen || !p.armed) return; // só tocou na casa: a roda fica aberta esperando o número
     const z = this.zoneAt(e.clientX, e.clientY);
-    if (typeof z === 'number') {
-      if (this.disabled.has(z)) this.setHot(null);
-      else this.cb.onPick(z);
-    } else if (z === 'center') {
+    if (typeof z === 'number') this.cb.onPick(z);
+    else if (z === 'center') {
       // Arrastar de volta ao centro desiste; tocar no centro apaga (ou fecha, se não há o que apagar).
       if (p.kind === 'open') this.setHot(null);
       else if (this.canErase) this.cb.onErase();
@@ -164,7 +170,6 @@ export class Wheel {
   track(e) { this.setHot(this.zoneAt(e.clientX, e.clientY)); }
 
   setHot(z) {
-    if (typeof z === 'number' && this.disabled.has(z)) z = null;
     if (z === 'center' && !this.canErase) z = null;
     if (z === this.hot) return;
     this.hot = z;
