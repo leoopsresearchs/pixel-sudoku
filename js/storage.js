@@ -1,20 +1,28 @@
-// Progresso, ajustes e partida em andamento ficam no próprio aparelho.
+// Progresso, ajustes e partidas em andamento ficam no próprio aparelho.
+import { LEVELS_VERSION, migrateLevel } from './levels.js';
+
 const KEY = 'pxsudoku.v1';
 
 const DEFAULTS = {
+  levels: LEVELS_VERSION,
   progress: { unlocked: 1 },
   settings: { sound: true, showErrors: true, highlightSame: true, showPossible: true, showCount: true, vibrate: true },
-  current: null,
+  current: null, // partida dos níveis
+  free: null, // partida do jogo livre
 };
 
 function load() {
   try {
     const raw = JSON.parse(localStorage.getItem(KEY));
     if (raw && typeof raw === 'object') {
+      // Progresso salvo com outra lista de níveis: converte os números.
+      const level = raw.levels === LEVELS_VERSION ? (l) => l : migrateLevel;
       return {
-        progress: { unlocked: raw.progress?.unlocked || 1 },
+        levels: LEVELS_VERSION,
+        progress: { unlocked: level(raw.progress?.unlocked || 1) },
         settings: { ...DEFAULTS.settings, ...raw.settings },
-        current: raw.current || null,
+        current: raw.current ? { ...raw.current, level: level(raw.current.level) } : null,
+        free: raw.free || null,
       };
     }
   } catch { /* armazenamento indisponível: segue só em memória */ }
@@ -30,5 +38,6 @@ export function save() {
 export function resetProgress() {
   store.progress = structuredClone(DEFAULTS.progress);
   store.current = null;
+  store.free = null;
   save();
 }

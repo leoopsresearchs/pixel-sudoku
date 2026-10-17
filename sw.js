@@ -1,6 +1,6 @@
 // Service worker: guarda o jogo todo no aparelho para funcionar offline.
 // Ao publicar uma versão nova, mude CACHE para o navegador baixar os arquivos de novo.
-const CACHE = 'pxsudoku-v5';
+const CACHE = 'pxsudoku-v6';
 const FONT_CACHE = 'pxsudoku-fonts';
 // Mesmo endereço do <link> de fontes no index.html.
 const FONT_CSS = 'https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Silkscreen:wght@400;700&display=swap';

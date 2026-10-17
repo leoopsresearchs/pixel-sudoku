@@ -1,5 +1,5 @@
 import { Game } from './game.js';
-import { WORLDS, worldOf, levelConfig } from './levels.js';
+import { WORLDS, worldOf, levelConfig, freeConfig } from './levels.js';
 import { generatePuzzle } from './sudoku.js';
 import { store, save, resetProgress } from './storage.js';
 import { Backdrop } from './scenes.js';
@@ -20,41 +20,54 @@ const TIPS = [
 ];
 
 // ---------- Geração de puzzles (Web Worker com fallback) ----------
+// Cada pedido tem uma chave: o número do nível, ou 'free<mundo>' para o próximo puzzle
+// do jogo livre daquela dificuldade.
 const ready = new Map();
 const pending = new Map();
 let worker = null;
 let reqId = 0;
 
-function generateSync(level) {
-  const p = generatePuzzle(levelConfig(level));
-  ready.set(level, p);
+function generateSync(key, cfg) {
+  const p = generatePuzzle(cfg);
+  ready.set(key, p);
   return p;
 }
 
 try {
   worker = new Worker('js/worker.js', { type: 'module' });
   worker.onmessage = ({ data }) => {
-    ready.set(data.level, data.puzzle);
+    ready.set(data.key, data.puzzle);
     const job = pending.get(data.id);
     if (job) { pending.delete(data.id); job.resolve(data.puzzle); }
   };
   worker.onerror = (e) => {
     e.preventDefault?.();
     worker = null;
-    for (const [id, job] of pending) { pending.delete(id); job.resolve(generateSync(job.level)); }
+    for (const [id, job] of pending) { pending.delete(id); job.resolve(generateSync(job.key, job.cfg)); }
   };
 } catch { worker = null; }
 
-function getPuzzle(level) {
-  if (ready.has(level)) return Promise.resolve(ready.get(level));
-  for (const job of pending.values()) if (job.level === level) return job.promise;
-  if (!worker) return new Promise((r) => setTimeout(() => r(generateSync(level)), 20));
+function request(key, cfg) {
+  if (ready.has(key)) return Promise.resolve(ready.get(key));
+  for (const job of pending.values()) if (job.key === key) return job.promise;
+  if (!worker) return new Promise((r) => setTimeout(() => r(generateSync(key, cfg)), 20));
   const id = ++reqId;
-  const job = { level };
+  const job = { key, cfg };
   job.promise = new Promise((resolve) => { job.resolve = resolve; });
   pending.set(id, job);
-  worker.postMessage({ id, level });
+  worker.postMessage({ id, key, cfg });
   return job.promise;
+}
+
+const getPuzzle = (level) => request(level, levelConfig(level));
+
+// Jogo livre: semente aleatória, então cada puzzle é novo.
+const freeSeed = () => crypto.getRandomValues(new Uint32Array(1))[0];
+const prepareFree = (w) => request(`free${w}`, freeConfig(w, freeSeed()));
+async function takeFree(w) {
+  const p = await prepareFree(w);
+  ready.delete(`free${w}`);
+  return p;
 }
 
 // ---------- Estado da interface ----------
@@ -69,6 +82,8 @@ let lastTick = 0;
 let cellEls = [];
 let keyEls = [];
 let armed = 0; // número ativo no teclado (número primeiro, depois as casas); 0 = nenhum
+let mode = 'levels'; // 'levels' (mundos e níveis) ou 'free' (jogo livre)
+let freeWorld = 0; // dificuldade do jogo livre (índice do mundo)
 let modalOpen = false;
 const keypad = $('#keypad');
 
@@ -125,6 +140,7 @@ $('#btn-play').addEventListener('click', () => {
   if (cur) startLevel(cur.level, { resume: true });
   else startLevel(store.progress.unlocked);
 });
+$('#btn-free').addEventListener('click', () => { unlockAudio(); sfx.click(); openFree(); });
 $('#btn-levels').addEventListener('click', () => { unlockAudio(); sfx.click(); openMap(); });
 $('#btn-settings').addEventListener('click', () => { unlockAudio(); sfx.click(); openSettings(); });
 
@@ -146,7 +162,9 @@ function renderMap() {
   backdrop.set(worldOf(unlocked).scene);
   for (const w of WORLDS) {
     const locked = unlocked < w.first;
-    const count = Number.isFinite(w.levels) ? w.levels : Math.max(unlocked - w.first + 1, 0) + 6;
+    // O Mestre não tem fim: o mapa mostra 40 níveis à frente de onde você está (como o Expert).
+    const endless = !Number.isFinite(w.levels);
+    const count = endless ? Math.max(unlocked - w.first + 1, 0) + 40 : w.levels;
     const sec = document.createElement('section');
     sec.className = `world px-panel${locked ? ' locked' : ''}`;
     const n = w.br * w.bc;
@@ -154,7 +172,7 @@ function renderMap() {
       <div class="world-head">
         <span class="world-num">MUNDO ${w.index + 1}</span>
         <h3>${locked ? '???' : w.name.toUpperCase()}</h3>
-        <span class="tag">${w.label.toUpperCase()} · ${n}x${n}</span>
+        <span class="tag">${w.label.toUpperCase()} · ${n}x${n}${endless ? ' · SEM FIM' : ''}</span>
       </div>
       <div class="tiles"></div>`;
     const tiles = sec.querySelector('.tiles');
@@ -197,33 +215,84 @@ function hasProgress(data) {
 }
 
 // ---------- Partida ----------
-async function startLevel(level, { resume = false } = {}) {
-  unlockAudio();
-  let data;
-  if (resume && store.current?.level === level) data = store.current;
-  else {
-    const loadingTimer = setTimeout(() => modal({ title: 'GERANDO...', html: '<div class="loader"><i></i><i></i><i></i></div>', buttons: [] }), 150);
-    const p = await getPuzzle(level);
-    clearTimeout(loadingTimer);
-    data = { level, br: p.br, bc: p.bc, puzzle: p.puzzle, solution: p.solution };
-  }
+// Mostra "GERANDO..." só se o puzzle demorar.
+async function generating(promise) {
+  const loadingTimer = setTimeout(() => modal({ title: 'GERANDO...', html: '<div class="loader"><i></i><i></i><i></i></div>', buttons: [] }), 150);
+  const p = await promise;
+  clearTimeout(loadingTimer);
+  return p;
+}
+
+// Monta a partida na tela (comum aos níveis e ao jogo livre).
+function begin(data, m, w, title, subtitle) {
   closeModal();
+  mode = m;
   game = new Game(data);
   paused = false;
   armed = 0;
   persist();
   buildBoard();
-  const w = worldOf(level);
   backdrop.set(w.scene);
-  $('#game-world').textContent = `MUNDO ${w.index + 1} · ${w.name.toUpperCase()}`;
-  $('#game-level').textContent = `NÍVEL ${level}`;
+  $('#game-world').textContent = title;
+  $('#game-level').textContent = subtitle;
+  // Jogo livre é sem pressa: o tempo não aparece.
+  $('#game-timer').hidden = m === 'free';
   show('game');
   layoutBoard();
   renderGame();
+}
+
+async function startLevel(level, { resume = false } = {}) {
+  unlockAudio();
+  let data;
+  if (resume && store.current?.level === level) data = store.current;
+  else {
+    const p = await generating(getPuzzle(level));
+    data = { level, br: p.br, bc: p.bc, puzzle: p.puzzle, solution: p.solution };
+  }
+  const w = worldOf(level);
+  begin(data, 'levels', w, `MUNDO ${w.index + 1} · ${w.name.toUpperCase()}`, `NÍVEL ${level}`);
   getPuzzle(level + 1); // deixa o próximo pronto
   if (level === w.first && level >= store.progress.unlocked && !game.hasProgress()) {
     showWorldIntro(w);
   } else startTimer();
+}
+
+// Jogo livre: puzzles novos sem fim, sem desbloquear nada e sem relógio.
+// data: retoma ou reinicia esse puzzle; sem data, gera um novo.
+async function startFree(world, data = null) {
+  unlockAudio();
+  if (!data) {
+    const p = await generating(takeFree(world));
+    data = { level: 0, br: p.br, bc: p.bc, puzzle: p.puzzle, solution: p.solution };
+  }
+  freeWorld = world;
+  const w = WORLDS[world];
+  const n = w.br * w.bc;
+  begin(data, 'free', w, 'JOGO LIVRE', `${w.label.toUpperCase()} · ${n}X${n}`);
+  prepareFree(world); // deixa o próximo pronto
+  startTimer();
+}
+
+// back: o que VOLTAR faz (fechar o menu no início, ou ir ao início depois de uma vitória).
+function openFree(back = closeModal) {
+  const saved = store.free;
+  const buttons = [];
+  if (saved && hasProgress(saved)) {
+    const w = WORLDS[saved.world];
+    buttons.push({ label: `CONTINUAR · ${w.label.toUpperCase()}`, cls: 'btn-primary', icon: 'play', action: () => startFree(saved.world, saved) });
+  }
+  for (const w of WORLDS) {
+    const n = w.br * w.bc;
+    buttons.push({ label: `${w.label.toUpperCase()} · ${n}X${n}`, action: () => startFree(w.index) });
+  }
+  buttons.push({ label: 'VOLTAR', icon: 'back', action: back });
+  modal({
+    title: 'JOGO LIVRE',
+    text: 'Um puzzle novo a cada partida, sem fases e sem relógio. Escolha a dificuldade:',
+    buttons,
+    onBack: back,
+  });
 }
 
 function showWorldIntro(w) {
@@ -238,7 +307,8 @@ function showWorldIntro(w) {
 
 function persist() {
   if (!game) return;
-  store.current = game.done ? null : game.serialize();
+  if (mode === 'free') store.free = game.done ? null : { ...game.serialize(), world: freeWorld };
+  else store.current = game.done ? null : game.serialize();
   save();
 }
 
@@ -384,7 +454,8 @@ function select(i) {
 
 // Mundos 1 e 2 (aprendizado): o teclado apaga os números que não cabem na casa,
 // a não ser que a ajuda esteja desligada nos ajustes.
-const assist = () => store.settings.showPossible && !!game && worldOf(game.level).index < 2;
+const worldIndex = () => (mode === 'free' ? freeWorld : worldOf(game.level).index);
+const assist = () => store.settings.showPossible && !!game && worldIndex() < 2;
 
 function tapCell(i) {
   if (!game || paused || game.done) return;
@@ -522,11 +593,13 @@ function openPause() {
   paused = true;
   $('#board').classList.add('paused');
   persist();
+  const free = mode === 'free';
   modal({
     title: 'PAUSA',
-    kicker: `NÍVEL ${game.level} · ${fmtTime(Math.floor(game.elapsed / 1000))}`,
+    kicker: free ? `JOGO LIVRE · ${WORLDS[freeWorld].label.toUpperCase()}` : `NÍVEL ${game.level} · ${fmtTime(Math.floor(game.elapsed / 1000))}`,
     buttons: [
       { label: 'CONTINUAR', cls: 'btn-primary', icon: 'play', action: resume },
+      ...(free ? [{ label: 'OUTRO PUZZLE', icon: 'play', action: () => startFree(freeWorld) }] : []),
       { label: 'REINICIAR', icon: 'restart', action: confirmRestart },
       { label: 'AJUSTES', icon: 'gear', action: () => openSettings(openPause) },
       { label: 'INÍCIO', icon: 'home', action: () => { closeModal(); goHome(); } },
@@ -541,11 +614,15 @@ function resume() {
 }
 
 function confirmRestart() {
+  const free = mode === 'free';
+  const restart = free
+    ? () => startFree(freeWorld, { level: 0, br: game.br, bc: game.bc, puzzle: game.puzzle, solution: game.solution })
+    : () => { store.current = null; save(); startLevel(game.level); };
   modal({
     title: 'REINICIAR?',
-    text: 'Você perde o que já preencheu neste nível.',
+    text: `Você perde o que já preencheu neste ${free ? 'puzzle' : 'nível'}.`,
     buttons: [
-      { label: 'REINICIAR', cls: 'btn-red', action: () => { store.current = null; save(); startLevel(game.level); } },
+      { label: 'REINICIAR', cls: 'btn-red', action: restart },
       { label: 'CANCELAR', action: openPause },
     ],
     onBack: openPause,
@@ -561,8 +638,16 @@ function goHome() {
 }
 
 // ---------- Vitória ----------
+function celebrate() {
+  const all = new Set(game.values.map((_, i) => i));
+  flashCells(all, game.selected >= 0 ? game.selected : 0);
+  sfx.win();
+  setTimeout(confetti, 250);
+}
+
 function onWin() {
   stopTimer();
+  if (mode === 'free') return onFreeWin();
   const level = game.level;
   const { progress } = store;
   const firstClear = progress.unlocked <= level;
@@ -570,11 +655,7 @@ function onWin() {
   store.current = null;
   save();
   ready.delete(level);
-
-  const all = new Set(game.values.map((_, i) => i));
-  flashCells(all, game.selected >= 0 ? game.selected : 0);
-  sfx.win();
-  setTimeout(confetti, 250);
+  celebrate();
 
   const w = worldOf(level);
   const worldDone = Number.isFinite(w.levels) && level === w.last && firstClear;
@@ -591,6 +672,25 @@ function onWin() {
         { label: 'NÍVEIS', icon: 'map', action: () => { closeModal(); openMap(); } },
       ],
       onBack: () => { closeModal(); openMap(); },
+    });
+  }, 900);
+}
+
+function onFreeWin() {
+  store.free = null;
+  save();
+  celebrate();
+  const w = WORLDS[freeWorld];
+  setTimeout(() => {
+    modal({
+      kicker: `JOGO LIVRE · ${w.label.toUpperCase()}`,
+      title: 'RESOLVIDO!',
+      buttons: [
+        { label: 'OUTRO', cls: 'btn-primary', icon: 'play', action: () => startFree(freeWorld) },
+        { label: 'DIFICULDADE', icon: 'map', action: () => openFree(() => { closeModal(); goHome(); }) },
+        { label: 'INÍCIO', icon: 'home', action: () => { closeModal(); goHome(); } },
+      ],
+      onBack: () => { closeModal(); goHome(); },
     });
   }, 900);
 }

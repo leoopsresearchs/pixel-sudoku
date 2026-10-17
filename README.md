@@ -10,14 +10,24 @@ HTML/CSS/JS puro: sem build, sem dependências.
 | 1 · Prado | 4x4 | 1–3 | Iniciante |
 | 2 · Bosque | 6x6 | 4–8 | Aprendiz |
 | 3 · Colinas | 9x9 | 9–20 | Fácil (só técnicas simples) |
-| 4 · Montanhas | 9x9 | 21–35 | Médio (bloqueio de candidatos) |
-| 5 · Crepúsculo | 9x9 | 36–50 | Difícil (pares e trios) |
-| 6 · Estrelas | 9x9 | 51–70 | Expert (X-Wing, XY-Wing) |
-| 7 · Infinito | 9x9 | 71+ | Mestre, sem fim |
+| 4 · Montanhas | 9x9 | 21–50 | Médio (bloqueio de candidatos) |
+| 5 · Crepúsculo | 9x9 | 51–80 | Difícil (pares e trios) |
+| 6 · Estrelas | 9x9 | 81–120 | Expert (X-Wing, XY-Wing) |
+| 7 · Infinito | 9x9 | 121+ | Mestre, sem fim (o mapa mostra sempre 40 níveis à frente) |
 
 Cada nível é gerado a partir de uma semente fixa (o nível 12 é sempre o mesmo puzzle), sempre com solução única
 e resolvível sem chute. A dificuldade é medida por um resolvedor que usa as mesmas técnicas de uma pessoa.
 Terminar um nível libera o próximo.
+
+Antes, Montanhas, Crepúsculo e Estrelas tinham 15, 15 e 20 níveis. O progresso salvo nessa versão é convertido
+pela posição dentro do mundo: quem estava no 5º nível do Crepúsculo continua no 5º nível do Crepúsculo.
+
+## Jogo livre
+
+Para jogar sem preocupação: escolha uma dificuldade (de Iniciante a Mestre, todas liberadas desde o começo) e
+o jogo gera um puzzle novo na hora, com semente aleatória. Não tem fases para liberar nem relógio na tela. Ao
+terminar, *Outro* gera mais um da mesma dificuldade; na pausa, *Outro puzzle* troca o atual. O puzzle em
+andamento fica salvo à parte, sem mexer no progresso dos níveis.
 
 ## Como jogar
 
@@ -74,7 +84,7 @@ versão nova. Ao criar um arquivo novo, inclua-o na lista `ASSETS` do mesmo arqu
 ## Estrutura
 
 - `js/sudoku.js`: gerador e resolvedor lógico (4x4, 6x6, 9x9)
-- `js/levels.js`: curva de dificuldade por mundo
+- `js/levels.js`: curva de dificuldade por mundo, configuração do jogo livre e conversão do progresso antigo
 - `js/game.js`: estado da partida (valores, desfazer, conferência da solução)
 - `js/main.js`: telas e controles
 - `js/sprites.js`, `js/scenes.js`, `js/audio.js`: pixel art, cenários e sons chiptune (tudo gerado em código)
