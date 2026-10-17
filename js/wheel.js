@@ -194,7 +194,7 @@ function drawDisc(canvas, r, hole) {
       if (d > r || d < hole) continue;
       if (d > r - 1 || (hole && d < hole + 1)) put(i, INK, 255);
       else if (d > r - 2) put(i, EDGE, 235);
-      else put(i, INK, (x + y) % 2 ? 215 : 175);
+      else put(i, INK, (x + y) % 2 ? 150 : 95);
     }
   }
   ctx.putImageData(img, 0, 0);
