@@ -37,7 +37,6 @@
         <button class="btn btn-big" id="btn-levels"><span class="btn-label">NÍVEIS</span></button>
         <button class="btn btn-big" id="btn-settings"><span class="btn-label">AJUSTES</span></button>
       </nav>
-      <div class="home-stats px-chip" id="home-stats"></div>
     </section>
 
     <!-- Mapa de níveis -->
@@ -45,38 +44,24 @@
       <header class="topbar">
         <button class="btn btn-icon" id="map-back" aria-label="Voltar"></button>
         <h2 class="topbar-title">NÍVEIS</h2>
-        <div class="px-chip" id="map-stars"></div>
       </header>
       <div class="map-scroll" id="worlds"></div>
     </section>
 
     <!-- Partida -->
-    <section id="screen-game" class="screen" hidden>
-      <header class="topbar">
-        <button class="btn btn-icon" id="btn-pause" aria-label="Pausar"></button>
-        <div class="level-info">
-          <span id="game-world"></span>
-          <strong id="game-level"></strong>
-        </div>
-        <div class="game-stats">
-          <span class="px-chip" id="game-timer"></span>
-          <span class="px-chip chip-red" id="game-mistakes"></span>
-        </div>
-      </header>
-      <div class="game-body" id="game-body">
-        <div class="board-wrap" id="board-wrap">
-          <div class="board" id="board"></div>
-        </div>
-        <div class="controls">
-          <div class="tools" id="tools">
-            <button class="btn tool" data-tool="undo"><span class="tool-ico"></span><span class="tool-label">DESFAZER</span></button>
-            <button class="btn tool" data-tool="erase"><span class="tool-ico"></span><span class="tool-label">APAGAR</span></button>
-            <button class="btn tool" data-tool="notes"><span class="tool-ico"></span><span class="tool-label">NOTAS</span><span class="badge" id="notes-badge">OFF</span></button>
-            <button class="btn tool" data-tool="hint"><span class="tool-ico"></span><span class="tool-label">DICA</span><span class="badge" id="hint-badge" hidden>0</span></button>
-          </div>
-          <div class="numpad" id="numpad"></div>
-        </div>
+    <!-- HUD nos cantos e tabuleiro no centro; os números abrem numa roda sobre a casa tocada. -->
+    <section id="screen-game" class="screen game" hidden>
+      <button class="btn btn-icon hud-pause" id="btn-pause" aria-label="Pausar"></button>
+      <div class="level-info hud-info">
+        <span id="game-world"></span>
+        <strong id="game-level"></strong>
+        <div class="progress" id="game-progress" role="progressbar" aria-label="Casas preenchidas"><i></i></div>
       </div>
+      <span class="px-chip hud-timer" id="game-timer"></span>
+      <div class="board-wrap" id="board-wrap">
+        <div class="board" id="board"></div>
+      </div>
+      <button class="btn btn-icon hud-undo" id="btn-undo" aria-label="Desfazer"></button>
     </section>
   </main>
 

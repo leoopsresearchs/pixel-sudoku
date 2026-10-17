@@ -1,19 +1,20 @@
 import { Game } from './game.js';
 import { WORLDS, worldOf, levelConfig } from './levels.js';
 import { generatePuzzle } from './sudoku.js';
-import { store, save, resetProgress, totalStars } from './storage.js';
+import { store, save, resetProgress } from './storage.js';
 import { Backdrop } from './scenes.js';
 import { icon, iconHTML, drawTitle, drawSprite, SLIME, PAL } from './sprites.js';
 import { sfx, unlockAudio, setSound } from './audio.js';
+import { Wheel } from './wheel.js';
 
-const VERSION = '1.0.0';
+const VERSION = '1.1.0';
 const $ = (sel) => document.querySelector(sel);
 
 const TIPS = [
-  'Cada linha, coluna e bloco 2x2 tem os números de 1 a 4, sem repetir. Toque numa casa e depois num número.',
-  'Agora 6x6! Os blocos são de 2x3 e os números vão de 1 a 6.',
+  'Cada linha, coluna e bloco 2x2 tem os números de 1 a 4, sem repetir. Toque numa casa vazia e escolha o número na roda.',
+  'Agora 6x6! Os blocos são de 2x3 e os números vão de 1 a 6. Truque: segure a casa e arraste até o número, sem soltar.',
   'O clássico 9x9. Procure a única casa possível para cada número em cada bloco.',
-  'Use NOTAS para marcar candidatos. Se um número só cabe numa linha de um bloco, ele sai do resto dessa linha.',
+  'Se um número só cabe numa linha de um bloco, ele não pode aparecer no resto dessa linha.',
   'Pares e trios: duas casas de uma linha com os mesmos dois candidatos eliminam esses números do resto da linha.',
   'Técnicas avançadas, como X-Wing. Respire fundo: dá para resolver sem chutar!',
   'Puzzles sem fim no nível máximo. Boa sorte, mestre!',
@@ -63,7 +64,6 @@ setSound(store.settings.sound);
 
 let screen = 'home';
 let game = null;
-let notesMode = false;
 let paused = false;
 let tickTimer = null;
 let lastTick = 0;
@@ -113,7 +113,6 @@ function renderHome() {
   const cur = store.current;
   const lvl = cur ? cur.level : store.progress.unlocked;
   $('#play-sub').textContent = `${cur ? 'CONTINUAR · ' : ''}NÍVEL ${lvl}`;
-  $('#home-stats').innerHTML = `${iconHTML('star')} ${totalStars()}`;
   backdrop.set(worldOf(lvl).scene);
   layoutHome();
 }
@@ -141,14 +140,11 @@ function openMap() {
 function renderMap() {
   const wrap = $('#worlds');
   wrap.innerHTML = '';
-  const { unlocked, stars } = store.progress;
+  const { unlocked } = store.progress;
   backdrop.set(worldOf(unlocked).scene);
-  $('#map-stars').innerHTML = `${iconHTML('star')} ${totalStars()}`;
   for (const w of WORLDS) {
     const locked = unlocked < w.first;
     const count = Number.isFinite(w.levels) ? w.levels : Math.max(unlocked - w.first + 1, 0) + 6;
-    let got = 0;
-    for (let l = w.first; l < w.first + count; l++) got += stars[l] || 0;
     const sec = document.createElement('section');
     sec.className = `world px-panel${locked ? ' locked' : ''}`;
     const n = w.br * w.bc;
@@ -157,19 +153,17 @@ function renderMap() {
         <span class="world-num">MUNDO ${w.index + 1}</span>
         <h3>${locked ? '???' : w.name.toUpperCase()}</h3>
         <span class="tag">${w.label.toUpperCase()} · ${n}x${n}</span>
-        <span class="world-stars">${iconHTML('star')} ${got}/${Number.isFinite(w.levels) ? count * 3 : '∞'}</span>
       </div>
       <div class="tiles"></div>`;
     const tiles = sec.querySelector('.tiles');
     for (let l = w.first; l < w.first + count; l++) {
       const b = document.createElement('button');
       const isLocked = l > unlocked;
-      const s = stars[l] || 0;
-      b.className = `btn tile${isLocked ? ' locked' : s ? ' done' : ''}${l === unlocked ? ' current' : ''}`;
+      b.className = `btn tile${isLocked ? ' locked' : l < unlocked ? ' done' : ''}${l === unlocked ? ' current' : ''}`;
       b.disabled = false;
       if (isLocked) b.append(icon('lock'));
       else {
-        b.innerHTML = `<span>${l}</span><span class="mini-stars">${[0, 1, 2].map((k) => iconHTML(k < s ? 'star' : 'starEmpty')).join('')}</span>`;
+        b.innerHTML = `<span>${l}</span>`;
         b.addEventListener('click', () => { sfx.click(); chooseLevel(l); });
       }
       if (isLocked) b.addEventListener('click', () => { sfx.error(); toast('Complete o nível anterior!'); });
@@ -197,7 +191,7 @@ function chooseLevel(level) {
 }
 
 function hasProgress(data) {
-  return data.values.some((v, i) => v && !data.puzzle[i]) || data.notes.some((m) => m);
+  return data.values.some((v, i) => v && !data.puzzle[i]);
 }
 
 // ---------- Partida ----------
@@ -213,7 +207,6 @@ async function startLevel(level, { resume = false } = {}) {
   }
   closeModal();
   game = new Game(data);
-  notesMode = false;
   paused = false;
   persist();
   buildBoard();
@@ -225,7 +218,7 @@ async function startLevel(level, { resume = false } = {}) {
   layoutBoard();
   renderGame();
   getPuzzle(level + 1); // deixa o próximo pronto
-  if (level === w.first && !store.progress.stars[level] && !game.hasProgress()) {
+  if (level === w.first && level >= store.progress.unlocked && !game.hasProgress()) {
     showWorldIntro(w);
   } else startTimer();
 }
@@ -267,40 +260,30 @@ function buildBoard() {
     }
     board.append(box);
   }
-  const pad = $('#numpad');
-  pad.innerHTML = '';
-  pad.style.setProperty('--n', n);
-  pad.style.setProperty('--pad-cols', bc);
-  for (let d = 1; d <= n; d++) {
-    const b = document.createElement('button');
-    b.className = 'btn num';
-    b.dataset.d = d;
-    b.innerHTML = `<span>${d}</span><small></small>`;
-    pad.append(b);
-  }
   layoutBoard();
 }
+
+const artPx = () => parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--px')) || 4;
 
 const boardWrap = $('#board-wrap');
 function layoutBoard() {
   if (!game) return;
   const r = boardWrap.getBoundingClientRect();
-  const px = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--px')) || 4;
-  const size = Math.floor(Math.min(r.width, r.height) - px * 4);
+  const size = Math.floor(Math.min(r.width, r.height) - artPx() * 4);
   if (size <= 0) return;
   const board = $('#board');
   board.style.width = board.style.height = `${size}px`;
   board.style.setProperty('--cell', `${size / game.n}px`);
-  $('#game-body').style.setProperty('--board-size', `${size}px`);
 }
 new ResizeObserver(layoutBoard).observe(boardWrap);
-addEventListener('resize', () => { layoutBoard(); if (screen === 'home') layoutHome(); });
+addEventListener('resize', () => { wheel.close(); layoutBoard(); if (screen === 'home') layoutHome(); });
 
 function renderGame() {
   if (!game) return;
-  const { g, n, values, notes, selected } = game;
+  const { g, values, selected } = game;
   const { showErrors, highlightSame } = store.settings;
-  const selVal = selected >= 0 ? values[selected] : 0;
+  // Enquanto o dedo passa por um número da roda, o tabuleiro mostra onde ele já está.
+  const selVal = preview || (selected >= 0 ? values[selected] : 0);
   for (let i = 0; i < g.cells; i++) {
     const el = cellEls[i];
     const v = values[i];
@@ -312,31 +295,13 @@ function renderGame() {
     el.classList.toggle('peer', peer);
     el.classList.toggle('same', highlightSame && selVal > 0 && v === selVal && i !== selected);
     el.classList.toggle('wrong', showErrors && game.isWrong(i));
-    let html;
-    if (v) html = `<span class="v">${v}</span>`;
-    else if (notes[i]) {
-      html = '<div class="notes">';
-      for (let d = 1; d <= n; d++) {
-        const has = notes[i] & (1 << (d - 1));
-        html += `<span class="${has && d === selVal && highlightSame ? 'hit' : ''}">${has ? d : ''}</span>`;
-      }
-      html += '</div>';
-    } else html = '';
+    const html = v ? `<span class="v">${v}</span>` : '';
     if (el._html !== html) { el.innerHTML = html; el._html = html; }
   }
-  for (const b of $('#numpad').children) {
-    const d = +b.dataset.d;
-    const left = n - game.placed(d);
-    b.disabled = game.digitComplete(d);
-    b.querySelector('small').textContent = left > 0 ? left : '';
-  }
-  $('#numpad').classList.toggle('notes-mode', notesMode);
-  $('[data-tool="notes"]').classList.toggle('on', notesMode);
-  $('#notes-badge').textContent = notesMode ? 'ON' : 'OFF';
-  $('#hint-badge').hidden = !game.hints;
-  $('#hint-badge').textContent = game.hints;
-  $('#game-mistakes').hidden = !showErrors;
-  $('#game-mistakes').innerHTML = `${iconHTML('cross')} ${game.mistakes}`;
+  let open = 0, filled = 0;
+  for (let i = 0; i < g.cells; i++) if (!game.isGiven(i)) { open++; if (values[i]) filled++; }
+  $('#game-progress').style.setProperty('--p', open ? filled / open : 1);
+  $('#btn-undo').disabled = game.done || !game.history.length;
   renderTimer();
 }
 
@@ -379,9 +344,35 @@ function select(i) {
   renderGame();
 }
 
+// ---------- Roda de números ----------
+let preview = 0;
+const wheel = new Wheel({
+  onPick: (d) => { wheel.close(); press(d); },
+  onErase: () => { wheel.close(); useTool('erase'); },
+  onHover: (d, pressing) => {
+    preview = d;
+    if (d && pressing) sfx.hover();
+    renderGame();
+  },
+});
+
+// Casa vazia ou preenchida por você abre a roda; casa fixa só destaca os números iguais.
+function tapCell(i, e) {
+  if (!game || paused || game.done) return;
+  if (game.isGiven(i)) { wheel.close(); select(i); return; }
+  game.selected = i;
+  const v = game.values[i];
+  const disabled = new Set();
+  for (let d = 1; d <= game.n; d++) if (d !== v && game.digitComplete(d)) disabled.add(d);
+  wheel.open(cellEls[i].getBoundingClientRect(), { n: game.n, px: artPx(), disabled, current: v, canErase: v > 0 });
+  wheel.grab(e, 'open');
+  sfx.wheel();
+  renderGame();
+}
+
 function press(d) {
   if (!game || paused || game.done) return;
-  handle(game.input(d, { notesMode, showErrors: store.settings.showErrors }));
+  handle(game.input(d));
 }
 
 function handle(r) {
@@ -389,8 +380,7 @@ function handle(r) {
   persist();
   renderGame();
   const el = cellEls[r.cell];
-  if (r.type === 'note') sfx.note();
-  else if (r.type === 'erase') sfx.erase();
+  if (r.type === 'erase') sfx.erase();
   else if (r.type === 'undo') sfx.undo();
   else if (r.type === 'error') {
     if (store.settings.showErrors) {
@@ -398,8 +388,8 @@ function handle(r) {
       restartAnim(el, 'shake');
       if (store.settings.vibrate) navigator.vibrate?.(60);
     } else { sfx.place(); restartAnim(el, 'pop'); }
-  } else if (r.type === 'place' || r.type === 'hint') {
-    (r.type === 'hint' ? sfx.hint : sfx.place)();
+  } else if (r.type === 'place') {
+    sfx.place();
     restartAnim(el, 'pop');
     if (r.units.length && !r.won) {
       setTimeout(sfx.unit, 90);
@@ -437,10 +427,8 @@ function flashCells(cells, origin) {
 
 function useTool(tool) {
   if (!game || paused || game.done) return;
-  if (tool === 'notes') { notesMode = !notesMode; sfx.click(); renderGame(); return; }
   if (tool === 'undo') handle(game.undo());
   if (tool === 'erase') handle(game.erase());
-  if (tool === 'hint') handle(game.hint());
 }
 
 // Toque imediato (pointerdown) para o tabuleiro e controles responderem rápido.
@@ -450,23 +438,19 @@ board.addEventListener('pointerdown', (e) => {
   if (!c) return;
   e.preventDefault();
   unlockAudio();
-  select(+c.dataset.i);
+  tapCell(+c.dataset.i, e);
 });
-$('#numpad').addEventListener('pointerdown', (e) => {
-  const b = e.target.closest('.num');
-  if (!b || b.disabled) return;
+board.addEventListener('contextmenu', (e) => e.preventDefault());
+// Tocar fora da roda (e fora do tabuleiro) fecha a roda; o toque segue para o botão tocado.
+document.addEventListener('pointerdown', (e) => {
+  if (wheel.isOpen && !wheel.el.contains(e.target) && !board.contains(e.target)) wheel.close();
+}, true);
+
+$('#btn-undo').append(icon('undo'));
+$('#btn-undo').addEventListener('pointerdown', (e) => {
   e.preventDefault();
   unlockAudio();
-  press(+b.dataset.d);
-});
-const TOOL_ICONS = { undo: 'undo', erase: 'eraser', notes: 'pencil', hint: 'bulb' };
-for (const b of document.querySelectorAll('.tool')) b.querySelector('.tool-ico').append(icon(TOOL_ICONS[b.dataset.tool]));
-$('#tools').addEventListener('pointerdown', (e) => {
-  const b = e.target.closest('.tool');
-  if (!b) return;
-  e.preventDefault();
-  unlockAudio();
-  useTool(b.dataset.tool);
+  useTool('undo');
 });
 
 // Efeito de "afundar" dos botões também no toque do iPad.
@@ -479,6 +463,7 @@ $('#btn-pause').addEventListener('click', () => { sfx.click(); openPause(); });
 
 function openPause() {
   if (!game || game.done) return;
+  wheel.close();
   stopTimer();
   paused = true;
   $('#board').classList.add('paused');
@@ -514,6 +499,7 @@ function confirmRestart() {
 }
 
 function goHome() {
+  wheel.close();
   stopTimer();
   persist();
   closeModal();
@@ -525,12 +511,7 @@ function goHome() {
 function onWin() {
   stopTimer();
   const level = game.level;
-  const stars = game.stars();
   const { progress } = store;
-  progress.stars[level] = Math.max(progress.stars[level] || 0, stars);
-  const best = progress.best[level];
-  const record = best != null && game.elapsed < best;
-  if (best == null || record) progress.best[level] = Math.round(game.elapsed);
   const firstClear = progress.unlocked <= level;
   progress.unlocked = Math.max(progress.unlocked, level + 1);
   store.current = null;
@@ -546,18 +527,11 @@ function onWin() {
   const worldDone = Number.isFinite(w.levels) && level === w.last && firstClear;
   const next = WORLDS[w.index + 1];
   setTimeout(() => {
-    const p = modal({
-      kicker: `NÍVEL ${level}`,
+    modal({
+      kicker: `NÍVEL ${level} · ${fmtTime(Math.floor(game.elapsed / 1000))}`,
       title: worldDone ? 'MUNDO COMPLETO!' : 'NÍVEL COMPLETO!',
       html: `
         ${worldDone ? `<div class="trophy">${iconHTML('trophy')}</div>` : ''}
-        <div class="win-stars"></div>
-        <div class="stat-rows">
-          <div><span>TEMPO</span><span>${fmtTime(Math.floor(game.elapsed / 1000))}</span></div>
-          <div><span>ERROS</span><span>${store.settings.showErrors ? game.mistakes : '-'}</span></div>
-          <div><span>DICAS</span><span>${game.hints}</span></div>
-        </div>
-        ${record ? '<div class="record">NOVO RECORDE!</div>' : ''}
         ${worldDone && next ? `<p>Desbloqueado: <b>${next.name.toUpperCase()}</b> (${next.br * next.bc}x${next.br * next.bc})</p>` : ''}`,
       buttons: [
         { label: 'PRÓXIMO', cls: 'btn-primary', icon: 'play', action: () => startLevel(level + 1) },
@@ -565,17 +539,6 @@ function onWin() {
       ],
       onBack: () => { closeModal(); openMap(); },
     });
-    const box = p.querySelector('.win-stars');
-    for (let k = 0; k < 3; k++) {
-      const s = icon(k < stars ? 'star' : 'starEmpty');
-      s.style.visibility = 'hidden';
-      box.append(s);
-      setTimeout(() => {
-        s.style.visibility = '';
-        s.classList.add('pop-in');
-        if (k < stars) sfx.star(k);
-      }, 350 + k * 280);
-    }
   }, 900);
 }
 
@@ -652,7 +615,7 @@ function openSettings(back) {
 function confirmReset(back) {
   modal({
     title: 'APAGAR TUDO?',
-    text: 'Estrelas, recordes e níveis desbloqueados serão apagados.',
+    text: 'Os níveis desbloqueados serão apagados.',
     buttons: [
       { label: 'APAGAR', cls: 'btn-red', action: () => { resetProgress(); game = null; ready.clear(); closeModal(); renderHome(); show('home'); toast('Progresso apagado.'); } },
       { label: 'CANCELAR', action: back },
@@ -664,6 +627,7 @@ function confirmReset(back) {
 // ---------- Modal e aviso ----------
 let modalBack = null;
 function modal({ title, kicker, text, html, buttons = [], footer = '', onBack }) {
+  wheel.close();
   const panel = $('#panel');
   panel.innerHTML = `
     ${kicker ? `<div class="kicker">${kicker}</div>` : ''}
@@ -715,11 +679,10 @@ addEventListener('keydown', (e) => {
   if (screen !== 'game' || !game) return;
   const { n } = game;
   const k = e.key.toLowerCase();
+  if (k === 'escape' && wheel.isOpen) { wheel.close(); e.preventDefault(); return; }
   if (/^[1-9]$/.test(k) && +k <= n) press(+k);
   else if (k === 'backspace' || k === 'delete' || k === '0') useTool('erase');
-  else if (k === 'n') useTool('notes');
   else if (k === 'z') useTool('undo');
-  else if (k === 'h') useTool('hint');
   else if (k === 'escape' || k === 'p') openPause();
   else if (k.startsWith('arrow')) {
     const i = Math.max(0, game.selected);
@@ -730,6 +693,7 @@ addEventListener('keydown', (e) => {
     if (k === 'arrowright') c = (c + 1) % n;
     select(r * n + c);
   } else return;
+  wheel.close();
   e.preventDefault();
 });
 
@@ -750,6 +714,7 @@ addEventListener('popstate', () => {
   if (screen === 'home' && !modalOpen) return;
   history.pushState({ trap: true }, '');
   if (modalOpen) { if (modalBack) modalBack(); return; }
+  if (wheel.isOpen) { wheel.close(); return; }
   if (screen === 'game') openPause();
   else goHome();
 });

@@ -65,7 +65,6 @@ button { font: inherit; color: inherit; touch-action: manipulation; }
   white-space: nowrap;
 }
 .px-chip .sprite { --s: .75; }
-.chip-red { color: #ffb4a8; }
 
 .btn {
   --bg: var(--white); --fg: var(--ink); --hi: #ffffff; --lo: var(--silver);
@@ -114,9 +113,8 @@ button { font: inherit; color: inherit; touch-action: manipulation; }
 }
 .topbar-title { flex: 1; margin: 0; font-size: calc(var(--px) * 6); font-weight: 700; text-shadow: var(--px) var(--px) 0 var(--ink); }
 .level-info { flex: 1; display: flex; flex-direction: column; gap: calc(var(--px) * 1.5); min-width: 0; text-shadow: calc(var(--px) * .75) calc(var(--px) * .75) 0 var(--ink); }
-.level-info span { font-size: calc(var(--px) * 4); color: var(--yellow); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.level-info span { max-width: 100%; font-size: calc(var(--px) * 4); color: var(--yellow); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .level-info strong { font-size: calc(var(--px) * 6); font-weight: 700; }
-.game-stats { display: flex; gap: calc(var(--px) * 2); align-items: center; }
 
 /* ---------- Início ---------- */
 .home { align-items: center; justify-content: center; gap: calc(var(--px) * 5); padding: calc(var(--px) * 4); }
@@ -125,7 +123,6 @@ button { font: inherit; color: inherit; touch-action: manipulation; }
 .mascot { animation: hop 1.2s steps(1) infinite; }
 @keyframes hop { 0%, 60%, 100% { transform: translateY(0); } 70%, 90% { transform: translateY(calc(var(--px) * -3)); } }
 .home-menu { display: flex; flex-direction: column; width: min(84vw, calc(var(--px) * 105)); gap: calc(var(--px) * 1); }
-.home-stats { font-size: calc(var(--px) * 4); }
 
 /* ---------- Mapa ---------- */
 .map-scroll {
@@ -140,26 +137,41 @@ button { font: inherit; color: inherit; touch-action: manipulation; }
 .world-num { font-size: calc(var(--px) * 4); color: var(--slate); width: 100%; }
 .world-head h3 { margin: 0; font-size: calc(var(--px) * 6); font-weight: 700; flex: 1; }
 .tag { font-size: calc(var(--px) * 4); padding: calc(var(--px) * 1.5) calc(var(--px) * 2); background: var(--ink); color: var(--yellow); }
-.world-stars { display: inline-flex; align-items: center; gap: var(--px); font-size: calc(var(--px) * 4); }
-.world-stars .sprite { --s: .75; }
 .tiles { display: grid; grid-template-columns: repeat(auto-fill, minmax(calc(var(--px) * 19), 1fr)); gap: calc(var(--px) * 2); }
 .tile { flex-direction: column; gap: calc(var(--px) * 1.5); padding: calc(var(--px) * 2.5) var(--px) calc(var(--px) * 3); font-size: calc(var(--px) * 4); min-height: calc(var(--px) * 19); }
-.tile .mini-stars { display: flex; gap: calc(var(--px) * .5); }
-.tile .mini-stars .sprite { --s: .5; }
 .tile.done { --bg: var(--lime); --hi: #e3ffc9; --lo: var(--green); }
 .tile.current { --bg: var(--yellow); --hi: #fff4d6; --lo: var(--orange); animation: blink 1s steps(1) infinite; }
 .tile.locked { --bg: var(--silver); --hi: #c2d3df; --lo: var(--slate); }
 @keyframes blink { 50% { --bg: var(--white); background: var(--white); } }
 
 /* ---------- Partida ---------- */
-.game-body {
-  flex: 1; min-height: 0;
-  display: flex; flex-direction: column; align-items: center;
-  gap: calc(var(--px) * 3);
-  padding: calc(var(--px) * 2) calc(var(--px) * 4) calc(var(--px) * 3);
+/* O tabuleiro é o centro da tela; o HUD fica nos cantos, sempre no mesmo lugar:
+   sistema (pausa) em cima à esquerda, status (tempo) em cima à direita,
+   ação (desfazer) embaixo à direita, perto do polegar. */
+.game {
+  display: grid;
+  grid-template:
+    "pause info  timer" auto
+    "board board board" minmax(0, 1fr)
+    ".     .     undo"  auto
+    / auto minmax(0, 1fr) auto;
+  gap: calc(var(--px) * 2) calc(var(--px) * 3);
+  padding: calc(var(--px) * 3) calc(var(--px) * 4) calc(var(--px) * 2);
 }
-.board-wrap { flex: 1; min-height: 0; width: 100%; display: grid; place-items: center; }
-.controls { width: var(--board-size, 100%); max-width: 100%; display: flex; flex-direction: column; gap: calc(var(--px) * 1); flex: none; }
+.hud-pause { grid-area: pause; justify-self: start; align-self: center; }
+.hud-info { grid-area: info; align-self: center; align-items: center; text-align: center; }
+.hud-timer { grid-area: timer; justify-self: end; align-self: center; }
+.hud-undo { grid-area: undo; justify-self: end; }
+.hud-undo .sprite, .hud-pause .sprite { --s: 1.25; }
+.board-wrap { grid-area: board; min-width: 0; min-height: 0; display: grid; place-items: center; }
+
+.progress {
+  width: min(100%, calc(var(--px) * 60)); height: calc(var(--px) * 2);
+  margin: var(--px) var(--px) 0;
+  background: var(--dark);
+  box-shadow: 0 0 0 var(--px) var(--ink);
+}
+.progress i { display: block; height: 100%; width: calc(var(--p, 0) * 100%); background: var(--lime); box-shadow: inset 0 calc(var(--px) * -.75) 0 var(--green); }
 
 .board {
   --cell: 40px;
@@ -169,6 +181,7 @@ button { font: inherit; color: inherit; touch-action: manipulation; }
   gap: var(--px);
   padding: var(--px);
   background: var(--ink);
+  touch-action: none; /* o dedo arrasta da casa até a roda sem o navegador roubar o gesto */
   box-shadow:
     0 calc(var(--px) * -1) 0 0 var(--ink), 0 var(--px) 0 0 var(--ink),
     calc(var(--px) * -1) 0 0 0 var(--ink), var(--px) 0 0 0 var(--ink),
@@ -199,17 +212,6 @@ button { font: inherit; color: inherit; touch-action: manipulation; }
 .board.paused .cell > * { visibility: hidden; }
 .board.paused .cell { background: var(--peer) !important; box-shadow: none; }
 
-.notes {
-  position: absolute; inset: 8%;
-  display: grid;
-  grid-template-columns: repeat(var(--bc), 1fr);
-  grid-template-rows: repeat(var(--br), 1fr);
-  font-size: calc(var(--cell) * .19);
-  color: var(--slate);
-}
-.notes span { display: grid; place-items: center; }
-.notes span.hit { background: var(--blue); color: var(--white); }
-
 .cell.pop .v { animation: pop .28s steps(3) both; }
 @keyframes pop { 0% { transform: translateY(6%) scale(1.5); } 100% { transform: translateY(6%) scale(1); } }
 .cell.shake { animation: shake .3s steps(4) both; }
@@ -217,42 +219,44 @@ button { font: inherit; color: inherit; touch-action: manipulation; }
 .cell.flash { animation: flash .5s steps(2) both; }
 @keyframes flash { 0%, 60% { background: var(--lime); color: var(--ink); } }
 
-/* Ferramentas e teclado numérico */
-.tools { display: grid; grid-template-columns: repeat(4, 1fr); gap: calc(var(--px) * 2); }
-.tool {
-  flex-direction: column; gap: calc(var(--px) * 1.5);
-  padding: calc(var(--px) * 2.5) var(--px) calc(var(--px) * 3);
-  font-size: calc(var(--px) * 4);
-  --bg: var(--dark); --fg: var(--white); --hi: var(--slate); --lo: var(--ink);
-}
-.tool.on { --bg: var(--sky); --hi: var(--cyan); --lo: var(--blue); }
-.tool .tool-ico { display: grid; place-items: center; }
-.badge {
-  position: absolute; top: calc(var(--px) * -2); right: calc(var(--px) * -1);
-  background: var(--red); color: var(--white);
-  font-size: calc(var(--px) * 3); padding: var(--px) calc(var(--px) * 1.25);
-  box-shadow: 0 0 0 calc(var(--px) * .75) var(--ink);
-}
-.tool.on .badge { background: var(--green); }
-
-.numpad { display: grid; grid-template-columns: repeat(var(--n), 1fr); gap: calc(var(--px) * 2); }
-.num {
-  flex-direction: column; gap: calc(var(--px) * 1.5);
-  padding: calc(var(--px) * 4.5) 0 calc(var(--px) * 4);
-  font-size: calc(var(--px) * 7);
-  --bg: var(--white);
-}
-.num small { font-size: calc(var(--px) * 3); color: var(--slate); }
-.numpad.notes-mode .num { --bg: #d9ecfb; --lo: var(--sky); font-size: calc(var(--px) * 4); color: var(--blue); }
-
-/* Paisagem (tablet deitado): tabuleiro à esquerda, controles à direita. */
+/* Paisagem (tablet deitado): o tabuleiro ocupa a altura toda e o HUD vai para as laterais,
+   mantendo os mesmos cantos do modo retrato. */
 @media (orientation: landscape) and (min-aspect-ratio: 5/4) {
-  .game-body { flex-direction: row; justify-content: center; align-items: stretch; gap: calc(var(--px) * 6); padding: calc(var(--px) * 2) calc(var(--px) * 6) calc(var(--px) * 4); }
-  .board-wrap { flex: 0 1 auto; width: auto; height: 100%; aspect-ratio: 1; max-width: 62vw; }
-  .controls { width: min(36vw, calc(var(--px) * 100)); justify-content: center; gap: calc(var(--px) * 4); }
-  .numpad { grid-template-columns: repeat(var(--pad-cols), 1fr); }
-  .num { padding: calc(var(--px) * 4.5) 0 calc(var(--px) * 5); font-size: calc(var(--px) * 7); }
+  .game {
+    --board-col: min(calc(100vh - env(safe-area-inset-top) - env(safe-area-inset-bottom) - var(--px) * 5), 70vw);
+    --board-col: min(calc(100dvh - env(safe-area-inset-top) - env(safe-area-inset-bottom) - var(--px) * 5), 70vw);
+    grid-template:
+      "pause board timer" auto
+      "info  board .    " minmax(0, 1fr)
+      ".     board undo " auto
+      / minmax(0, 1fr) var(--board-col) minmax(0, 1fr);
+    padding: calc(var(--px) * 3) calc(var(--px) * 4) calc(var(--px) * 2);
+  }
+  .hud-info { align-self: start; align-items: flex-start; text-align: left; }
+  .hud-info span { white-space: normal; }
+  .hud-info strong { font-size: calc(var(--px) * 4); white-space: nowrap; }
 }
+
+/* ---------- Roda de números ---------- */
+.wheel { position: fixed; z-index: 15; border-radius: 50%; touch-action: none; }
+.wheel-disc { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; animation: wheel-in .12s steps(3) backwards; }
+@keyframes wheel-in { from { transform: scale(.4); opacity: 0; } }
+.wheel-item, .wheel-erase {
+  position: absolute; width: var(--s); height: var(--s);
+  margin: 0; padding: 0;
+  pointer-events: none;
+}
+.wheel-item {
+  font-family: var(--font-num); font-size: calc(var(--s) * .44); line-height: 1;
+  animation: item-in .15s steps(3) backwards; animation-delay: calc(var(--k) * 12ms);
+}
+.wheel-item > span { transform: translateY(6%); }
+@keyframes item-in { from { transform: translate(var(--fx), var(--fy)) scale(.3); opacity: 0; } }
+.wheel-item.cur { --bg: var(--lime); --hi: #e3ffc9; --lo: var(--green); }
+.wheel-item.off { --bg: var(--silver); --fg: var(--slate); --hi: #c2d3df; --lo: var(--slate); opacity: .55; }
+.wheel-item.hot, .wheel-erase.hot { --bg: var(--yellow); --fg: var(--ink); --hi: #fff4d6; --lo: var(--orange); transform: scale(1.15); z-index: 1; }
+.wheel-erase .sprite { --s: 1; }
+.wheel-cell { position: absolute; pointer-events: none; background: var(--yellow); box-shadow: inset 0 0 0 calc(var(--px) * .75) var(--orange), 0 0 0 var(--px) var(--ink); }
 
 /* ---------- Modais ---------- */
 .overlay {
@@ -276,14 +280,6 @@ button { font: inherit; color: inherit; touch-action: manipulation; }
 .panel-buttons.row { flex-direction: row; }
 .panel-buttons.row .btn { flex: 1; }
 
-.win-stars { display: flex; justify-content: center; gap: calc(var(--px) * 3); min-height: calc(var(--px) * 10 * 2); }
-.win-stars .sprite { --s: 2; }
-.win-stars .sprite.pop-in { animation: starpop .35s steps(4) both; }
-@keyframes starpop { 0% { transform: scale(0); } 60% { transform: scale(1.3); } 100% { transform: scale(1); } }
-.stat-rows { display: flex; flex-direction: column; gap: calc(var(--px) * 2.5); font-size: calc(var(--px) * 4); }
-.stat-rows div { display: flex; justify-content: space-between; padding-bottom: calc(var(--px) * 2); border-bottom: var(--px) dotted var(--silver); }
-.record { text-align: center; color: var(--red); animation: blink2 .6s steps(1) infinite; font-size: calc(var(--px) * 4); }
-@keyframes blink2 { 50% { opacity: .2; } }
 .trophy { display: flex; justify-content: center; }
 .trophy .sprite { --s: 2.5; }
 
@@ -314,5 +310,5 @@ button { font: inherit; color: inherit; touch-action: manipulation; }
 }
 
 /* Números em fonte pixel mais encorpada (sem acentos, então Press Start 2P serve). */
-.cell, .num > span, .tile > span:first-child { font-family: var(--font-num); }
+.cell, .tile > span:first-child { font-family: var(--font-num); }
 .tile > span:first-child { font-size: calc(var(--px) * 4); }

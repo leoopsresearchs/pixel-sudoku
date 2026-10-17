@@ -17,8 +17,13 @@ HTML/CSS/JS puro: sem build, sem dependências.
 
 Cada nível é gerado a partir de uma semente fixa (o nível 12 é sempre o mesmo puzzle), sempre com solução única
 e resolvível sem chute. A dificuldade é medida por um resolvedor que usa as mesmas técnicas de uma pessoa.
+Terminar um nível libera o próximo.
 
-Estrelas: 3 sem erros nem dicas, 2 com até 3 erros/dicas, 1 acima disso.
+## Como jogar
+
+Toque numa casa vazia: abre uma roda com os números em volta dela. Toque no número, ou, mais rápido,
+segure a casa e arraste até o número sem soltar (soltar fora da roda cancela). Cada número fica sempre
+no mesmo lugar da roda, como num relógio. O centro da roda apaga a casa; o botão no canto de baixo desfaz.
 
 ## Rodar no computador
 
@@ -53,14 +58,15 @@ O progresso fica salvo no próprio aparelho.
 
 ## Atualizar uma versão publicada
 
-Ao mudar qualquer arquivo, troque `CACHE = 'pxsudoku-v2'` em `sw.js` (ex.: `v3`) para os tablets baixarem a
+Ao mudar qualquer arquivo, aumente a versão em `CACHE` no `sw.js` (ex.: `pxsudoku-v3` → `pxsudoku-v4`) para os tablets baixarem a
 versão nova. Ao criar um arquivo novo, inclua-o na lista `ASSETS` do mesmo arquivo.
 
 ## Estrutura
 
 - `js/sudoku.js`: gerador e resolvedor lógico (4x4, 6x6, 9x9)
 - `js/levels.js`: curva de dificuldade por mundo
-- `js/game.js`: estado da partida (notas, desfazer, dicas, erros)
+- `js/game.js`: estado da partida (valores, desfazer, conferência da solução)
 - `js/main.js`: telas e controles
+- `js/wheel.js`: roda de números que abre sobre a casa tocada
 - `js/sprites.js`, `js/scenes.js`, `js/audio.js`: pixel art, cenários e sons chiptune (tudo gerado em código)
 - `tools/make-icons.mjs`: gera os ícones PNG (`npm run icons`)

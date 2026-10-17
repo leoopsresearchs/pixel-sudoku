@@ -31,17 +31,16 @@ const seq = (notes, step, opts) => notes.forEach((f, i) => tone(f, step * 1.4, {
 
 export const sfx = {
   tap: () => tone(740, 0.03, { vol: 0.025 }),
+  wheel: () => tone(440, 0.05, { vol: 0.03, slide: 440 }),
+  hover: () => tone(988, 0.02, { vol: 0.02 }),
   click: () => tone(520, 0.04, { vol: 0.04 }),
   place: () => { tone(587, 0.05, { vol: 0.05 }); tone(880, 0.07, { vol: 0.05, delay: 0.045 }); },
-  note: () => tone(1046, 0.03, { type: 'triangle', vol: 0.06 }),
   erase: () => tone(392, 0.08, { vol: 0.04, slide: -160 }),
   error: () => { tone(196, 0.12, { type: 'sawtooth', vol: 0.05 }); tone(147, 0.16, { type: 'sawtooth', vol: 0.05, delay: 0.09 }); },
   unit: () => seq([659, 784, 988, 1319], 0.05, { vol: 0.045 }),
-  hint: () => seq([1319, 1568, 2093], 0.04, { type: 'triangle', vol: 0.06 }),
   undo: () => tone(660, 0.06, { vol: 0.04, slide: -220 }),
   win: () => {
     seq([523, 659, 784, 1046, 784, 1046, 1319], 0.09, { vol: 0.05 });
     seq([262, 330, 392, 523], 0.18, { type: 'triangle', vol: 0.07 });
   },
-  star: (i) => tone(880 + i * 220, 0.12, { vol: 0.05 }),
 };
