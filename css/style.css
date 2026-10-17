@@ -240,6 +240,7 @@ button { font: inherit; color: inherit; touch-action: manipulation; }
   font-family: var(--font-num); font-size: calc(var(--px) * 6); line-height: 1;
 }
 .key-n { font-family: var(--font); font-size: calc(var(--px) * 4); color: var(--slate); min-height: 1em; }
+.keypad.no-count .key-n { display: none; } /* ajuste "quantos faltam" desligado */
 /* Número ativo (número primeiro, depois as casas). */
 .key.on { --bg: var(--yellow); --hi: #fff4d6; --lo: var(--orange); }
 .key.on .key-n { color: var(--ink); }

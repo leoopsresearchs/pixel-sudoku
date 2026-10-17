@@ -3,7 +3,7 @@ const KEY = 'pxsudoku.v1';
 
 const DEFAULTS = {
   progress: { unlocked: 1 },
-  settings: { sound: true, showErrors: true, highlightSame: true, showPossible: true, vibrate: true },
+  settings: { sound: true, showErrors: true, highlightSame: true, showPossible: true, showCount: true, vibrate: true },
   current: null,
 };
 

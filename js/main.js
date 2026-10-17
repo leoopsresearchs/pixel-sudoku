@@ -319,6 +319,7 @@ function renderGame() {
   }
   // Nos mundos de aprendizado, os números que não cabem na casa escolhida ficam apagados.
   const fits = assist() && !armed && selected >= 0 && !game.isGiven(selected) ? new Set(game.candidates(selected)) : null;
+  keypad.classList.toggle('no-count', !store.settings.showCount);
   for (let d = 1; d <= n; d++) {
     const k = keyEls[d];
     const left = Math.max(0, n - count[d]);
@@ -627,6 +628,7 @@ const SETTINGS = [
   { key: 'showErrors', label: 'MOSTRAR ERROS' },
   { key: 'highlightSame', label: 'DESTACAR IGUAIS' },
   { key: 'showPossible', label: 'NÚMEROS POSSÍVEIS (4X4 E 6X6)' },
+  { key: 'showCount', label: 'QUANTOS FALTAM' },
   { key: 'vibrate', label: 'VIBRAR NO ERRO', only: () => 'vibrate' in navigator },
 ];
 

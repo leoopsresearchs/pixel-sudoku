@@ -23,7 +23,7 @@ Terminar um nível libera o próximo.
 
 Os números ficam num teclado fixo fora do tabuleiro, para nunca cobrir as casas: em pé, numa linha logo
 abaixo do tabuleiro; deitado, numa grade 3x3 embaixo à direita, perto do polegar. Embaixo de cada número
-aparece quantos ainda faltam; o número completo fica apagado.
+aparece quantos ainda faltam (dá para esconder em *Ajustes → Quantos faltam*); o número completo fica apagado.
 
 Dá para jogar nas duas ordens:
 
