@@ -32,7 +32,8 @@ Dá para jogar nas duas ordens:
   todas as casas dele. Toque no número de novo, numa casa fixa ou no "voltar" do Android para desligar.
 
 Tocar o número que já está na casa apaga a casa; o botão no canto de baixo desfaz. Nos mundos 1 e 2
-(4x4 e 6x6), o teclado apaga os números que não cabem na casa escolhida; do 9x9 em diante, não.
+(4x4 e 6x6), o teclado apaga os números que não cabem na casa escolhida; do 9x9 em diante, não. Essa ajuda
+pode ser desligada em *Ajustes → Números possíveis*.
 
 ## Rodar no computador
 

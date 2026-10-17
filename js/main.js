@@ -381,8 +381,9 @@ function select(i) {
 //   (ou uma casa fixa) desliga.
 // Tocar o número que já está na casa apaga a casa.
 
-// Mundos 1 e 2 (aprendizado): o teclado apaga os números que não cabem na casa.
-const assist = () => !!game && worldOf(game.level).index < 2;
+// Mundos 1 e 2 (aprendizado): o teclado apaga os números que não cabem na casa,
+// a não ser que a ajuda esteja desligada nos ajustes.
+const assist = () => store.settings.showPossible && !!game && worldOf(game.level).index < 2;
 
 function tapCell(i) {
   if (!game || paused || game.done) return;
@@ -625,6 +626,7 @@ const SETTINGS = [
   { key: 'sound', label: 'SOM' },
   { key: 'showErrors', label: 'MOSTRAR ERROS' },
   { key: 'highlightSame', label: 'DESTACAR IGUAIS' },
+  { key: 'showPossible', label: 'NÚMEROS POSSÍVEIS (4X4 E 6X6)' },
   { key: 'vibrate', label: 'VIBRAR NO ERRO', only: () => 'vibrate' in navigator },
 ];
 
