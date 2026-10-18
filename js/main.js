@@ -6,8 +6,20 @@ import { Backdrop } from './scenes.js';
 import { icon, iconHTML, drawTitle, drawSprite, SLIME, PAL } from './sprites.js';
 import { sfx, unlockAudio, setSound } from './audio.js';
 
-const VERSION = '1.1.0';
+const VERSION = '1.2.0';
 const $ = (sel) => document.querySelector(sel);
+const motionPreference = matchMedia('(prefers-reduced-motion: reduce)');
+const reducedMotion = () => store.settings.reduceMotion || motionPreference.matches;
+
+function applyAppearance() {
+  const root = document.documentElement;
+  root.classList.toggle('night', store.settings.nightMode);
+  root.classList.toggle('reduce-motion', reducedMotion());
+  root.classList.toggle('readable-numbers', store.settings.readableNumbers);
+  root.classList.toggle('subtle-highlights', store.settings.subtleHighlights);
+  backdrop.setReducedMotion(reducedMotion());
+}
+motionPreference.addEventListener('change', applyAppearance);
 
 const TIPS = [
   'Cada linha, coluna e bloco 2x2 tem os números de 1 a 4, sem repetir. Toque numa casa e depois no número: os que não cabem na casa ficam apagados.',
@@ -71,7 +83,8 @@ async function takeFree(w) {
 }
 
 // ---------- Estado da interface ----------
-const backdrop = new Backdrop($('#bg'));
+const backdrop = new Backdrop($('#bg'), { reducedMotion: reducedMotion() });
+applyAppearance();
 setSound(store.settings.sound);
 
 let screen = 'home';
@@ -116,7 +129,7 @@ function drawMascot() {
 }
 drawMascot();
 setInterval(() => {
-  if (screen !== 'home' || document.hidden) return;
+  if (screen !== 'home' || document.hidden || reducedMotion()) return;
   mascotFrame = (mascotFrame + 1) % 8;
   drawMascot();
 }, 300);
@@ -361,6 +374,9 @@ function layoutBoard() {
   board.style.width = board.style.height = `${size}px`;
   board.style.setProperty('--cell', `${size / game.n}px`);
   keypad.style.setProperty('--board', `${size}px`);
+  // O tabuleiro fica centralizado no espaço disponível. Traz o teclado até sua
+  // borda inferior no retrato, sem mover o desfazer do canto da tela.
+  keypad.style.setProperty('--lift', `${Math.max(0, (r.height - size) / 2)}px`);
 }
 new ResizeObserver(layoutBoard).observe(boardWrap);
 addEventListener('resize', () => { layoutBoard(); if (screen === 'home') layoutHome(); });
@@ -525,6 +541,7 @@ function handle(r) {
 // animationend das animações filhas (ex.: pop do dígito) também sobe até a célula.
 function restartAnim(el, cls, onEnd) {
   el.classList.remove(cls);
+  if (reducedMotion()) { onEnd?.(); return; }
   void el.offsetWidth;
   el.classList.add(cls);
   const done = (e) => {
@@ -537,6 +554,7 @@ function restartAnim(el, cls, onEnd) {
 }
 
 function flashCells(cells, origin) {
+  if (reducedMotion()) return;
   const { g } = game;
   for (const i of cells) {
     const dist = Math.abs(g.rowOf[i] - g.rowOf[origin]) + Math.abs(g.colOf[i] - g.colOf[origin]);
@@ -698,6 +716,7 @@ function onFreeWin() {
 // Confete pixelado.
 const fx = $('#fx');
 function confetti() {
+  if (reducedMotion()) return;
   const ctx = fx.getContext('2d');
   const W = 160, H = Math.round(160 * innerHeight / innerWidth);
   fx.width = W; fx.height = H;
@@ -710,6 +729,7 @@ function confetti() {
   let frames = 0;
   const step = () => {
     ctx.clearRect(0, 0, W, H);
+    if (reducedMotion()) return;
     for (const p of parts) {
       p.vy += 0.09; p.vx *= 0.99;
       p.x += p.vx; p.y += p.vy;
@@ -724,7 +744,11 @@ function confetti() {
 
 // ---------- Ajustes ----------
 const SETTINGS = [
-  { key: 'sound', label: 'SOM' },
+  { key: 'nightMode', label: 'TEMA NOTURNO', group: 'CONFORTO VISUAL', description: 'Cores escuras no tabuleiro, teclado e menus.' },
+  { key: 'reduceMotion', label: 'REDUZIR MOVIMENTO', description: 'Cenário parado, sem saltos, flashes ou confete.' },
+  { key: 'readableNumbers', label: 'NÚMEROS MAIS NÍTIDOS', description: 'Fonte simples e maior no tabuleiro e teclado.' },
+  { key: 'subtleHighlights', label: 'DESTAQUES SUAVES', description: 'Cores discretas e contorno na casa selecionada.' },
+  { key: 'sound', label: 'SOM', group: 'JOGO' },
   { key: 'showErrors', label: 'MOSTRAR ERROS' },
   { key: 'highlightSame', label: 'DESTACAR IGUAIS' },
   { key: 'showPossible', label: 'NÚMEROS POSSÍVEIS (4X4 E 6X6)' },
@@ -736,7 +760,7 @@ function openSettings(back) {
   const onBack = back || closeModal;
   const p = modal({
     title: 'AJUSTES',
-    html: '<div class="settings-list"></div>',
+    html: '<p>Você pode comparar cada opção separadamente. A preferência de reduzir movimento do aparelho também é respeitada.</p><div class="settings-list"></div>',
     buttons: [
       { label: 'OK', cls: 'btn-primary', action: onBack },
       { label: 'APAGAR PROGRESSO', cls: 'btn-red', action: () => confirmReset(() => openSettings(back)) },
@@ -747,16 +771,25 @@ function openSettings(back) {
   const list = p.querySelector('.settings-list');
   for (const s of SETTINGS) {
     if (s.only && !s.only()) continue;
+    if (s.group) {
+      const heading = document.createElement('h3');
+      heading.className = 'settings-heading';
+      heading.textContent = s.group;
+      list.append(heading);
+    }
     const b = document.createElement('button');
+    b.dataset.setting = s.key;
     const paint = () => {
       const on = store.settings[s.key];
       b.className = `btn toggle${on ? ' on' : ''}`;
-      b.innerHTML = `<span>${s.label}</span><span class="switch">${on ? 'ON' : 'OFF'}</span>`;
+      b.setAttribute('aria-pressed', String(on));
+      b.innerHTML = `<span class="toggle-copy">${s.label}${s.description ? `<small>${s.description}</small>` : ''}</span><span class="switch">${on ? 'ON' : 'OFF'}</span>`;
     };
     paint();
     b.addEventListener('click', () => {
       store.settings[s.key] = !store.settings[s.key];
       save();
+      applyAppearance();
       setSound(store.settings.sound);
       unlockAudio();
       sfx.click();
@@ -794,8 +827,7 @@ function modal({ title, kicker, text, html, buttons = [], footer = '', onBack })
   for (const b of buttons) {
     const el = document.createElement('button');
     el.className = `btn ${b.cls || ''}`;
-    // ícones brancos somem em botões claros: pinta o miolo de cinza-azulado
-    if (b.icon) el.append(icon(b.icon, { recolor: { w: PAL.d } }));
+    if (b.icon) el.append(icon(b.icon, { recolor: { w: store.settings.nightMode ? '#b8c6d9' : PAL.d } }));
     el.append(document.createTextNode(b.label));
     el.addEventListener('click', () => { sfx.click(); b.action(); });
     row.append(el);
@@ -873,9 +905,6 @@ addEventListener('popstate', () => {
   if (screen === 'game') openPause();
   else goHome();
 });
-
-// Evita zoom por pinça no iOS.
-document.addEventListener('gesturestart', (e) => e.preventDefault());
 
 // Em localhost o service worker fica desligado (para ver edições na hora); use ?sw para testar.
 const isLocal = ['localhost', '127.0.0.1'].includes(location.hostname) && !location.search.includes('sw');

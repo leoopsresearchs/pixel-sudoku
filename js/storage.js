@@ -6,7 +6,10 @@ const KEY = 'pxsudoku.v1';
 const DEFAULTS = {
   levels: LEVELS_VERSION,
   progress: { unlocked: 1 },
-  settings: { sound: true, showErrors: true, highlightSame: true, showPossible: true, showCount: true, vibrate: true },
+  settings: {
+    nightMode: true, reduceMotion: true, readableNumbers: true, subtleHighlights: true,
+    sound: true, showErrors: true, highlightSame: true, showPossible: true, showCount: true, vibrate: true,
+  },
   current: null, // partida dos níveis
   free: null, // partida do jogo livre
 };

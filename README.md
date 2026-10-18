@@ -45,6 +45,20 @@ Tocar o número que já está na casa apaga a casa; o botão no canto de baixo d
 (4x4 e 6x6), o teclado apaga os números que não cabem na casa escolhida; do 9x9 em diante, não. Essa ajuda
 pode ser desligada em *Ajustes → Números possíveis*.
 
+## Conforto visual
+
+Os ajustes de conforto começam ligados e ficam salvos no aparelho, inclusive para quem já tem progresso:
+
+- **Tema noturno:** escurece o tabuleiro, o teclado, os menus e o cenário em todos os mundos.
+- **Reduzir movimento:** mantém o cenário parado e desliga saltos, tremores, flashes e confete.
+  A preferência de reduzir movimento do sistema também é respeitada, mesmo com esta opção desligada.
+- **Números mais nítidos:** usa uma fonte simples e maior no tabuleiro e no teclado, preservando a arte pixelada.
+- **Destaques suaves:** usa preenchimentos discretos e um contorno na casa selecionada.
+
+Cada opção pode ser desligada separadamente em *Ajustes*, acessível também pela pausa.
+O zoom por pinça está liberado. Em pé, o teclado acompanha a borda inferior do tabuleiro;
+deitado, o layout reserva mais espaço para as teclas.
+
 ## Rodar no computador
 
 ```bash

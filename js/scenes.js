@@ -14,9 +14,10 @@ const SCENES = {
 const W = 160;
 
 export class Backdrop {
-  constructor(canvas) {
+  constructor(canvas, { reducedMotion = false } = {}) {
     this.canvas = canvas;
     this.ctx = canvas.getContext('2d');
+    this.reducedMotion = reducedMotion;
     this.scene = SCENES.meadow;
     this.t = 0;
     this.resize();
@@ -60,11 +61,17 @@ export class Backdrop {
   }
 
   start() {
-    if (this.timer) return;
+    if (this.timer || this.reducedMotion || document.hidden) return;
     this.timer = setInterval(() => { this.t++; this.draw(); }, 140);
   }
 
   stop() { clearInterval(this.timer); this.timer = null; }
+
+  setReducedMotion(reduced) {
+    this.reducedMotion = reduced;
+    if (reduced) this.stop();
+    else this.start();
+  }
 
   draw() {
     const { ctx, scene: s } = this;

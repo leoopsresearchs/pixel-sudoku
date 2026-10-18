@@ -1,6 +1,6 @@
 // Service worker: guarda o jogo todo no aparelho para funcionar offline.
 // Ao publicar uma versão nova, mude CACHE para o navegador baixar os arquivos de novo.
-const CACHE = 'pxsudoku-v7';
+const CACHE = 'pxsudoku-v10';
 const FONT_CACHE = 'pxsudoku-fonts';
 // Mesmo endereço do <link> de fontes no index.html.
 const FONT_CSS = 'https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Silkscreen:wght@400;700&display=swap';
@@ -50,10 +50,14 @@ self.addEventListener('install', (e) => {
   );
 });
 
+// Apaga só as versões antigas do próprio Sudoku: outros jogos publicados no mesmo
+// site (leoopsresearchs.github.io) dividem o mesmo Cache Storage.
 self.addEventListener('activate', (e) => {
   e.waitUntil(
     caches.keys()
-      .then((keys) => Promise.all(keys.filter((k) => k !== CACHE && k !== FONT_CACHE).map((k) => caches.delete(k))))
+      .then((keys) => Promise.all(keys
+        .filter((k) => k.startsWith('pxsudoku-') && k !== CACHE && k !== FONT_CACHE)
+        .map((k) => caches.delete(k))))
       .then(() => self.clients.claim())
   );
 });

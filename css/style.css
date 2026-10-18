@@ -5,10 +5,34 @@
   --navy: #29366f; --blue: #3b5dc9; --sky: #41a6f6; --cyan: #73eff7;
   --white: #f4f4f4; --silver: #94b0c2; --slate: #566c86; --dark: #333c57;
   --peer: #dde6ee; --same: #ffe3a3; --wrong-bg: #f6c7c3;
+  --surface: #f4f4f4; --text: #1a1c2c; --muted: #566c86;
+  --button-hi: #ffffff; --button-lo: #94b0c2;
+  --grid-line: #94b0c2; --board-line: #1a1c2c;
+  --user-digit: #2d4798; --error-digit: #84283e;
+  --selected: #ffcd75; --selected-wrong: #f3a99f; --selection-ring: #925b1c;
+  --inactive-digit: #4e6279;
+  --flash-bg: #a7f070;
   --px: 4px;
   --font: 'Silkscreen', ui-monospace, Menlo, monospace;
   --font-num: 'Press Start 2P', ui-monospace, Menlo, monospace;
+  color-scheme: light;
+}
+:root.night {
   color-scheme: dark;
+  --surface: #252c38; --text: #d9e0e8; --muted: #b0becf;
+  --button-hi: #445269; --button-lo: #19212d;
+  --grid-line: #4c5a70; --board-line: #718298;
+  --user-digit: #a5c7ff; --error-digit: #ffb4bd;
+  --peer: #2c3543; --same: #3c4050; --wrong-bg: #482d39;
+  --selected: #394658; --selected-wrong: #50323e; --selection-ring: #a7bbd3;
+  --inactive-digit: #92a4bb;
+  --flash-bg: #355343;
+}
+:root.subtle-highlights {
+  --peer: #eef1f4; --same: #efe7d3; --selected: #e4e9ee; --selection-ring: #526b8a;
+}
+:root.night.subtle-highlights {
+  --peer: #29313e; --same: #333c49; --selected: #344154; --selection-ring: #a7bbd3;
 }
 @media (max-width: 700px), (max-height: 560px) { :root { --px: 3px; } }
 
@@ -54,7 +78,7 @@ button { font: inherit; color: inherit; touch-action: manipulation; }
     calc(var(--b) * -1) 0 0 0 var(--ink),
     var(--b) 0 0 0 var(--ink);
 }
-.px-panel { background: var(--white); color: var(--ink); }
+.px-panel { background: var(--surface); color: var(--text); }
 
 .px-chip {
   display: inline-flex; align-items: center; gap: calc(var(--px) * 1.5);
@@ -67,7 +91,7 @@ button { font: inherit; color: inherit; touch-action: manipulation; }
 .px-chip .sprite { --s: .75; }
 
 .btn {
-  --bg: var(--white); --fg: var(--ink); --hi: #ffffff; --lo: var(--silver);
+  --bg: var(--surface); --fg: var(--text); --hi: var(--button-hi); --lo: var(--button-lo);
   position: relative;
   display: inline-flex; align-items: center; justify-content: center; gap: calc(var(--px) * 2);
   border: 0; border-radius: 0; cursor: pointer;
@@ -134,7 +158,7 @@ button { font: inherit; color: inherit; touch-action: manipulation; }
 .world { padding: calc(var(--px) * 4); margin: var(--px); }
 .world.locked { background: var(--silver); }
 .world-head { display: flex; flex-wrap: wrap; align-items: center; gap: calc(var(--px) * 2) calc(var(--px) * 3); margin-bottom: calc(var(--px) * 4); }
-.world-num { font-size: calc(var(--px) * 4); color: var(--slate); width: 100%; }
+.world-num { font-size: calc(var(--px) * 4); color: var(--muted); width: 100%; }
 .world-head h3 { margin: 0; font-size: calc(var(--px) * 6); font-weight: 700; flex: 1; }
 .tag { font-size: calc(var(--px) * 4); padding: calc(var(--px) * 1.5) calc(var(--px) * 2); background: var(--ink); color: var(--yellow); }
 .tiles { display: grid; grid-template-columns: repeat(auto-fill, minmax(calc(var(--px) * 19), 1fr)); gap: calc(var(--px) * 2); }
@@ -182,7 +206,7 @@ button { font: inherit; color: inherit; touch-action: manipulation; }
   grid-template-rows: repeat(var(--box-rows), 1fr);
   gap: var(--px);
   padding: var(--px);
-  background: var(--ink);
+  background: var(--board-line);
   box-shadow:
     0 calc(var(--px) * -1) 0 0 var(--ink), 0 var(--px) 0 0 var(--ink),
     calc(var(--px) * -1) 0 0 0 var(--ink), var(--px) 0 0 0 var(--ink),
@@ -193,23 +217,23 @@ button { font: inherit; color: inherit; touch-action: manipulation; }
   grid-template-columns: repeat(var(--bc), 1fr);
   grid-template-rows: repeat(var(--br), 1fr);
   gap: 2px;
-  background: var(--silver);
+  background: var(--grid-line);
 }
 .cell {
   position: relative;
   display: grid; place-items: center;
-  background: var(--white); color: var(--ink);
+  background: var(--surface); color: var(--text);
   font-size: calc(var(--cell) * .44); line-height: 1;
   cursor: pointer;
   overflow: hidden;
 }
 .cell .v { display: block; transform: translateY(6%); }
-.cell.user { color: var(--blue); }
+.cell.user { color: var(--user-digit); }
 .cell.peer { background: var(--peer); }
 .cell.same { background: var(--same); }
-.cell.wrong { color: var(--red); background: var(--wrong-bg); }
-.cell.selected { background: var(--yellow); box-shadow: inset 0 0 0 calc(var(--px) * .75) var(--orange); }
-.cell.selected.wrong { background: #f3a99f; }
+.cell.wrong { color: var(--error-digit); background: var(--wrong-bg); }
+.cell.selected { background: var(--selected); box-shadow: inset 0 0 0 calc(var(--px) * .75) var(--selection-ring); }
+.cell.selected.wrong { background: var(--selected-wrong); }
 .board.paused .cell > * { visibility: hidden; }
 .board.paused .cell { background: var(--peer) !important; box-shadow: none; }
 
@@ -218,7 +242,7 @@ button { font: inherit; color: inherit; touch-action: manipulation; }
 .cell.shake { animation: shake .3s steps(4) both; }
 @keyframes shake { 25% { transform: translateX(-10%); } 50% { transform: translateX(10%); } 75% { transform: translateX(-6%); } }
 .cell.flash { animation: flash .5s steps(2) both; }
-@keyframes flash { 0%, 60% { background: var(--lime); color: var(--ink); } }
+@keyframes flash { 0%, 60% { background: var(--flash-bg); color: var(--text); } }
 
 /* ---------- Teclado de números ---------- */
 /* Em pé: uma linha com a largura do tabuleiro (--board vem do JS). Cada número fica
@@ -231,6 +255,7 @@ button { font: inherit; color: inherit; touch-action: manipulation; }
   grid-template-columns: repeat(var(--n, 9), minmax(0, calc(var(--px) * 24)));
   justify-content: center;
   gap: 0 var(--px);
+  transform: translateY(calc(-1 * var(--lift, 0px)));
 }
 .key {
   min-width: 0;
@@ -239,22 +264,22 @@ button { font: inherit; color: inherit; touch-action: manipulation; }
   flex-direction: column; gap: calc(var(--px) * 1.5);
   font-family: var(--font-num); font-size: calc(var(--px) * 6); line-height: 1;
 }
-.key-n { font-family: var(--font); font-size: calc(var(--px) * 4); color: var(--slate); min-height: 1em; }
+.key-n { font-family: var(--font); font-size: calc(var(--px) * 4); color: var(--muted); min-height: 1em; }
 .keypad.no-count .key-n { display: none; } /* ajuste "quantos faltam" desligado */
 /* Número ativo (número primeiro, depois as casas). */
 .key.on { --bg: var(--yellow); --hi: #fff4d6; --lo: var(--orange); }
 .key.on .key-n { color: var(--ink); }
 /* Número completo, ou (nos mundos 1 e 2) que não cabe na casa escolhida. */
-.key.done, .key.no { --bg: var(--peer); --fg: var(--silver); --hi: var(--white); --lo: var(--silver); }
-.key.done .key-n, .key.no .key-n { color: var(--silver); }
+.key.done, .key.no { --bg: var(--peer); --fg: var(--inactive-digit); --hi: var(--surface); --lo: var(--button-lo); }
+.key.done .key-n, .key.no .key-n { color: var(--inactive-digit); }
 
 /* Paisagem (tablet deitado): o tabuleiro ocupa a altura toda e o HUD vai para as laterais,
    mantendo os mesmos cantos do modo retrato. O teclado vira uma grade 3x3 embaixo à
    direita, acima do desfazer, onde o polegar alcança todos os números. */
 @media (orientation: landscape) and (min-aspect-ratio: 5/4) {
   .game {
-    --board-col: min(calc(100vh - env(safe-area-inset-top) - env(safe-area-inset-bottom) - var(--px) * 5), 70vw);
-    --board-col: min(calc(100dvh - env(safe-area-inset-top) - env(safe-area-inset-bottom) - var(--px) * 5), 70vw);
+    --board-col: min(calc(100vh - env(safe-area-inset-top) - env(safe-area-inset-bottom) - var(--px) * 5), calc(100% - clamp(168px, 18vw, 240px) * 2 - var(--px) * 6));
+    --board-col: min(calc(100dvh - env(safe-area-inset-top) - env(safe-area-inset-bottom) - var(--px) * 5), calc(100% - clamp(168px, 18vw, 240px) * 2 - var(--px) * 6));
     grid-template:
       "pause board timer" auto
       "info  board .    " minmax(0, 1fr)
@@ -271,6 +296,7 @@ button { font: inherit; color: inherit; touch-action: manipulation; }
     width: 100%;
     grid-template-columns: repeat(var(--cols, 3), minmax(0, calc(var(--px) * 20)));
     justify-content: end;
+    transform: none;
   }
   .key { height: auto; aspect-ratio: 1; }
 }
@@ -291,8 +317,8 @@ button { font: inherit; color: inherit; touch-action: manipulation; }
 }
 @keyframes drop { from { transform: translateY(calc(var(--px) * -10)); opacity: 0; } }
 .panel h2 { margin: 0; text-align: center; font-size: calc(var(--px) * 6); font-weight: 700; line-height: 1.4; }
-.panel p { margin: 0; font-size: calc(var(--px) * 4); line-height: 1.8; text-align: center; color: var(--dark); }
-.panel .kicker { text-align: center; font-size: calc(var(--px) * 4); color: var(--slate); }
+.panel p { margin: 0; font-size: calc(var(--px) * 4); line-height: 1.8; text-align: center; color: var(--text); }
+.panel .kicker { text-align: center; font-size: calc(var(--px) * 4); color: var(--muted); }
 .panel-buttons { display: flex; flex-direction: column; gap: 0; }
 .panel-buttons.row { flex-direction: row; }
 .panel-buttons.row .btn { flex: 1; }
@@ -301,7 +327,11 @@ button { font: inherit; color: inherit; touch-action: manipulation; }
 .trophy .sprite { --s: 2.5; }
 
 .settings-list { display: flex; flex-direction: column; gap: calc(var(--px) * 1); }
+.settings-heading { margin: calc(var(--px) * 3) 0; font-size: calc(var(--px) * 4); color: var(--muted); }
 .toggle { justify-content: space-between; text-align: left; line-height: 1.6; }
+.toggle-copy { min-width: 0; }
+.toggle-copy small { display: block; margin-top: var(--px); font: 14px/1.45 system-ui, sans-serif; color: var(--muted); }
+.toggle .switch { flex: none; }
 .switch { padding: var(--px) calc(var(--px) * 2); background: var(--slate); color: var(--white); font-size: calc(var(--px) * 4); }
 .toggle.on .switch { background: var(--green); }
 .version { text-align: center; font-size: calc(var(--px) * 3); color: var(--silver); }
@@ -323,9 +353,49 @@ button { font: inherit; color: inherit; touch-action: manipulation; }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  *, *::before, *::after { animation-duration: 0s !important; animation-iteration-count: 1 !important; }
+  *, *::before, *::after { animation-duration: 0s !important; animation-delay: 0s !important; animation-iteration-count: 1 !important; }
+  .btn:active, .btn.is-pressed { transform: none; }
 }
+.reduce-motion *, .reduce-motion *::before, .reduce-motion *::after {
+  animation-duration: 0s !important; animation-delay: 0s !important; animation-iteration-count: 1 !important;
+}
+.reduce-motion .btn:active, .reduce-motion .btn.is-pressed { transform: none; }
 
 /* Números em fonte pixel mais encorpada (sem acentos, então Press Start 2P serve). */
 .cell, .tile > span:first-child { font-family: var(--font-num); }
 .tile > span:first-child { font-size: calc(var(--px) * 4); }
+
+/* A arte permanece pixelada; os dígitos podem usar a fonte local do aparelho. */
+.readable-numbers .cell, .readable-numbers .key {
+  font-family: system-ui, -apple-system, sans-serif;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+.readable-numbers .cell { font-size: calc(var(--cell) * .56); }
+.readable-numbers .cell .v { transform: none; }
+.readable-numbers .key { font-size: calc(var(--px) * 7); }
+.readable-numbers .key-n { font-family: system-ui, -apple-system, sans-serif; }
+
+/* O tema cobre também menus, botões e cenário para evitar áreas claras no escuro. */
+.night body { color: var(--text); }
+.night #bg { filter: brightness(.22) saturate(.45); }
+.night #title, .night #mascot, .night #fx { filter: brightness(.75) saturate(.7); }
+.night .overlay { background: rgba(12, 17, 25, .85); }
+.night .btn-primary, .night .tile.current { --bg: #494535; --fg: var(--text); --hi: #69624a; --lo: #302e25; }
+.night .btn-green, .night .tile.done { --bg: #2c453a; --fg: var(--text); --hi: #436453; --lo: #1e3029; }
+.night .btn-blue { --bg: #334c6d; --fg: var(--text); --hi: #4d6b92; --lo: #24364e; }
+.night .btn-red { --bg: #51343c; --fg: var(--text); --hi: #76505a; --lo: #37252b; }
+.night .btn-dark, .night .btn-icon { --bg: #2d3748; --fg: var(--text); --hi: #45536b; --lo: #19212d; }
+.night .world.locked { background: #202733; }
+.night .tile.locked { --bg: #303a49; --fg: var(--muted); --hi: #45536b; --lo: #19212d; }
+.night .key.on { --bg: var(--selected); --fg: var(--text); --hi: #536780; --lo: #263243; }
+.night .key.on .key-n { color: var(--text); }
+.night .level-info span, .night .tag, .night .toast { color: #d4c39c; }
+.night .progress i { background: #83ad8f; box-shadow: inset 0 calc(var(--px) * -.75) 0 #486b55; }
+.night .switch { background: #45536b; color: var(--text); }
+.night .toggle.on .switch { background: #365641; }
+.night .version { color: var(--muted); }
+.night .loader i { background: var(--muted); }
+.night .toast { box-shadow: 0 0 0 var(--px) var(--board-line), 0 0 0 calc(var(--px) * 2) var(--ink); }
+.night .tile.current { animation-name: night-blink; }
+@keyframes night-blink { 50% { background: #5a5541; } }
